@@ -1,0 +1,25 @@
+# /etc/systemd/system/gym.service  –  runs the application with gunicorn
+[Unit]
+Description=Gym Management System (gunicorn)
+After=network.target postgresql.service
+
+[Service]
+User=gym
+Group=gym
+WorkingDirectory=/srv/gym/app
+EnvironmentFile=/srv/gym/.env
+ExecStart=/srv/gym/venv/bin/gunicorn config.wsgi:application --bind unix:/run/gym/gunicorn.sock --workers 3 --timeout 30 --access-logfile - --error-logfile -
+RuntimeDirectory=gym
+Restart=on-failure
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+
+# --- Scheduled notifications (reminders, announcements, queued e-mail/SMS) ---------------------------------
+# Either use cron:   0 * * * *  gym  cd /srv/gym/app && /srv/gym/venv/bin/python manage.py run_scheduled_notifications
+# or a systemd timer pair (gym-notify.service + gym-notify.timer) calling the same command hourly.

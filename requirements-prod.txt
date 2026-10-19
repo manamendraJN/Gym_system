@@ -1,0 +1,5 @@
+# Production install: pip install -r requirements-prod.txt
+-r requirements.txt
+gunicorn>=22.0
+# Shared cache for login throttling across worker processes (set REDIS_URL); optional but recommended with >1 worker
+redis>=5.0

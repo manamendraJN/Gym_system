@@ -1,0 +1,43 @@
+# /etc/nginx/sites-available/gym  –  TLS termination, static files, uploaded media
+server {
+    listen 80;
+    server_name gym.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name gym.example.com;
+
+    # Certificates, e.g. from Let's Encrypt:  certbot --nginx -d gym.example.com
+    ssl_certificate     /etc/letsencrypt/live/gym.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gym.example.com/privkey.pem;
+
+    client_max_body_size 8m;          # photos 2 MB, documents 5 MB
+
+    # Collected static files (python manage.py collectstatic). WhiteNoise also serves them, nginx is just faster.
+    location /static/ {
+        alias /srv/gym/app/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Public uploads (member / trainer photos, exercise images). File names are random UUIDs.
+    location /media/ {
+        alias /srv/gym/app/media/;
+        expires 7d;
+    }
+
+    # NEVER expose private_media/ (trainer certificates, expense receipts). It is not mapped here on purpose;
+    # those files are only streamed by permission-checked application views.
+
+    location / {
+        proxy_pass http://unix:/run/gym/gunicorn.sock;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # OVERWRITE (not append) so clients cannot spoof their address; matches USE_X_FORWARDED_FOR=True
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 30s;
+    }
+}
