@@ -46,3 +46,13 @@ def make_member_with_login(users, name="Portal Person", membership=True):
     if membership:
         give_membership(member, users["manager"])
     return member, login
+
+
+def assign_to_trainer(user, *members):
+    """Give the trainer login `user` an open assignment for each member (trainers only see assigned members)."""
+    from apps.trainers.models import TrainerAssignment
+
+    trainer = Trainer.objects.filter(user=user).first() or make_trainer(f"Coach {user.username}", user=user, availability=False)
+    for member in members:
+        TrainerAssignment.objects.get_or_create(trainer=trainer, member=member, end_date=None)
+    return trainer

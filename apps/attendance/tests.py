@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Role, User
 from apps.core.stats import get_dashboard_stats
+from apps.core.testing import assign_to_trainer
 from apps.members.models import Member
 from apps.members.tests import make_member
 from apps.memberships import services as membership_services
@@ -268,6 +269,7 @@ class AttendanceViewTests(Base):
         a = Attendance.objects.create(member=self.live, check_in=at(date(2026, 1, 5)), check_out=at(date(2026, 1, 5), 11))
         b = Attendance.objects.create(member=self.live, check_in=at(date(2026, 2, 5)), check_out=at(date(2026, 2, 5), 11), method="qr")
         c = Attendance.objects.create(member=self.member, check_in=at(date(2026, 2, 6)), check_out=at(date(2026, 2, 6), 11))
+        assign_to_trainer(self.users["trainer"], self.member, self.live)
         self.login("trainer")
 
         def ids(url, **params):
@@ -289,6 +291,7 @@ class AttendanceViewTests(Base):
         Attendance.objects.create(member=self.live, check_in=at(date(2026, 2, 5), 7), check_out=at(date(2026, 2, 5), 8), method="qr")
         Attendance.objects.create(member=self.member, check_in=at(date(2026, 2, 5), 7, 30))
         Attendance.objects.create(member=self.live, check_in=at(date(2026, 2, 6), 9))
+        assign_to_trainer(self.users["trainer"], self.member, self.live)
         self.login("trainer")
         r = self.client.get(reverse("attendance:report"), {"date": "2026-02-05"})
         self.assertEqual((r.context["total"], r.context["unique"], r.context["qr_count"], r.context["still_inside"]), (2, 2, 1, 1))
@@ -300,6 +303,7 @@ class AttendanceViewTests(Base):
     def test_pagination(self):
         for i in range(30):
             Attendance.objects.create(member=self.live, check_in=at(date(2026, 1, 1)) + timedelta(days=i), check_out=at(date(2026, 1, 1)) + timedelta(days=i, hours=1))
+        assign_to_trainer(self.users["trainer"], self.live)
         self.login("trainer")
         self.assertEqual(len(self.client.get(reverse("attendance:history")).context["object_list"]), 25)
         self.assertEqual(len(self.client.get(reverse("attendance:history"), {"page": 2}).context["object_list"]), 5)

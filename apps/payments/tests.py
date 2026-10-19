@@ -11,6 +11,7 @@ from django.utils import timezone
 from apps.accounts.models import Role, User
 from apps.core.models import ActivityLog
 from apps.core.stats import get_dashboard_stats
+from apps.core.testing import assign_to_trainer
 from apps.members.tests import make_member
 from apps.memberships import services as membership_services
 from apps.memberships.models import MembershipPlan
@@ -507,6 +508,7 @@ class ListAndPermissionTests(Base):
 
     def test_trainer_cannot_see_money_on_membership_page(self):
         self.pay("1000")
+        assign_to_trainer(self.users["trainer"], self.member)
         self.login("trainer")
         r = self.client.get(self.membership.get_absolute_url())
         self.assertEqual(r.status_code, 200)

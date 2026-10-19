@@ -347,3 +347,52 @@ class DashboardRoleTests(Base):
         self.assertEqual(get_dashboard_stats()["training"]["completed_sessions"], 1)
         self.assertEqual(get_dashboard_stats(user=self.users["trainer"])["training"]["completed_sessions"], 1)
         self.assertEqual(get_dashboard_stats(user=make_trainer("Another", user=User.objects.create_user(username="t2", email="t2@example.com", password=PASSWORD, role="trainer")).user)["training"]["completed_sessions"], 0)
+
+
+class PortalPaymentsTests(Base):
+    def setUp(self):
+        super().setUp()
+        from apps.payments import services as pay_services
+
+        self.alice_ms = self.member.memberships.get()
+        self.bob_ms = self.other.memberships.get()
+        self.alice_pay, _ = pay_services.record_payment(self.alice_ms, Decimal("2000"), "cash", self.manager, "pa1")
+        self.bob_pay, _ = pay_services.record_payment(self.bob_ms, Decimal("1234"), "cash", self.manager, "pb1")
+        self.adjustment, _ = pay_services.adjust_charge(self.alice_ms, Decimal("-100"), self.manager, "pa2", "Promo")
+
+    def test_member_sees_only_their_own_balance_history_and_receipts(self):
+        self.login(self.login_a)
+        page = self.client.get(reverse("portal:payments"))
+        self.assertContains(page, self.alice_pay.receipt_number)
+        self.assertNotContains(page, self.bob_pay.receipt_number)
+        self.assertNotContains(page, "1,234.00")
+        self.assertNotContains(page, self.adjustment.receipt_number)  # adjustments are internal, not receipts
+        self.assertEqual(page.context["owed"], Decimal("2900"))  # 5000 - 100 discount - 2000 paid
+        receipt = self.client.get(reverse("portal:receipt", args=[self.alice_pay.pk]))
+        self.assertContains(receipt, "Outstanding balance")
+        self.assertContains(receipt, reverse("portal:payments"))  # back link stays inside the portal
+        self.assertNotContains(receipt, 'href="%s"' % reverse("payments:detail", args=[self.alice_pay.pk]))
+        self.assertTrue(self.client.get(reverse("portal:receipt_pdf", args=[self.alice_pay.pk])).content.startswith(b"%PDF"))
+
+    def test_other_members_receipts_and_staff_receipts_are_unreachable(self):
+        self.login(self.login_a)
+        for name in ("portal:receipt", "portal:receipt_pdf"):
+            self.assertEqual(self.client.get(reverse(name, args=[self.bob_pay.pk])).status_code, 404, name)
+            self.assertEqual(self.client.get(reverse(name, args=[self.adjustment.pk])).status_code, 404, name)
+        self.assertEqual(self.client.get(reverse("payments:receipt", args=[self.alice_pay.pk])).status_code, 403)  # staff URL stays staff-only
+        self.assertEqual(self.client.get(reverse("payments:list")).status_code, 403)
+        self.login(self.users["manager"])
+        self.assertEqual(self.client.get(reverse("portal:payments")).status_code, 403)  # staff do not use the portal
+
+    def test_pending_and_voided_entries(self):
+        from apps.payments import services as pay_services
+
+        pending, _ = pay_services.record_payment(self.alice_ms, Decimal("500"), "bank_transfer", self.manager, "pa3", pending=True)
+        voided, _ = pay_services.record_payment(self.alice_ms, Decimal("100"), "cash", self.manager, "pa4")
+        pay_services.void_payment(voided, self.manager, "Wrong member")
+        self.login(self.login_a)
+        page = self.client.get(reverse("portal:payments"))
+        self.assertContains(page, pending.receipt_number)
+        self.assertContains(page, "Pending confirmation")
+        self.assertNotContains(page, reverse("portal:receipt", args=[voided.pk]))  # (its number may still appear in the notification bell)
+        self.assertContains(self.client.get(reverse("portal:receipt", args=[pending.pk])), "NOT A VALID RECEIPT")

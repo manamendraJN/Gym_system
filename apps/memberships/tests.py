@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from apps.accounts.models import Role, RolePermission, User
 from apps.core.stats import get_dashboard_stats
+from apps.core.testing import assign_to_trainer
 from apps.members.models import Member
 from apps.members.tests import make_member
 
@@ -461,6 +462,7 @@ class MembershipViewTests(Base):
                  m.get_absolute_url()]
         actions = [reverse("memberships:assign", args=[self.member.pk]), reverse("memberships:renew", args=[m.pk]),
                    reverse("memberships:change", args=[m.pk]), reverse("memberships:suspend", args=[m.pk])]
+        assign_to_trainer(self.users["trainer"], self.member)
         for role in ("trainer", "accountant"):
             self.login(role)
             for url in pages:
