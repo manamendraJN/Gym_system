@@ -121,6 +121,22 @@
       {% endwith %}
     </nav>
   </aside>
+  <script>
+  /* Keep the sidebar where the user left it across page loads (runs before first paint of the content). */
+  (function () {
+    var sb = document.getElementById("sidebar"), key = "gym.sidebar.scroll";
+    if (!sb) return;
+    try { var saved = sessionStorage.getItem(key); if (saved !== null) sb.scrollTop = parseInt(saved, 10) || 0; } catch (e) {}
+    var active = sb.querySelector(".nav-item-link.active");
+    if (active) {
+      var a = active.getBoundingClientRect(), b = sb.getBoundingClientRect();
+      if (a.top < b.top || a.bottom > b.bottom) sb.scrollTop += (a.top - b.top) - (b.height / 2) + (a.height / 2);
+    }
+    var save = function () { try { sessionStorage.setItem(key, String(sb.scrollTop)); } catch (e) {} };
+    sb.addEventListener("scroll", save, { passive: true });
+    window.addEventListener("pagehide", save);
+  })();
+  </script>
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
   <div class="main">

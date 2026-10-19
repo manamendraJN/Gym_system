@@ -66,7 +66,7 @@ body { font-size: .94rem; }
 .main { flex: 1; margin-left: var(--sidebar-w); min-width: 0; display: flex; flex-direction: column; }
 .topbar {
   position: sticky; top: 0; z-index: 1030; display: flex; align-items: center; gap: .75rem;
-  padding: .6rem 1.5rem; background: rgba(255,255,255,.92); backdrop-filter: blur(6px);
+  padding: .6rem 1.5rem; background: rgba(255,255,255,.92); 
   border-bottom: 1px solid var(--gym-border);
 }
 .topbar-title { font-weight: 600; color: var(--gym-muted); }
@@ -196,9 +196,9 @@ body { background-color: var(--gym-bg); }
 .stat-value { font-size: 1.9rem; font-weight: 700; }
 
 /* equipment backdrop (components/gym_backdrop.html): fixed, behind everything, never receives clicks */
-.gym-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; color: #0e1621; }
-.gym-bg .layer { position: absolute; will-change: transform; }
-.gym-bg svg { display: block; width: 100%; height: auto; opacity: .08; animation: gym-drift 18s ease-in-out infinite alternate; }
+.gym-bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; color: #0e1621; contain: strict; transform: translateZ(0); }
+.gym-bg .layer { position: absolute; }
+.gym-bg svg { will-change: transform; display: block; width: 100%; height: auto; opacity: .08; animation: gym-drift 18s ease-in-out infinite alternate; }
 .gym-bg .l1 { bottom: 6%; right: -3%; width: 380px; } .gym-bg .l1 svg { animation-duration: 20s; }
 .gym-bg .l2 { bottom: 4%; left: 14%; width: 300px; } .gym-bg .l2 svg { animation-duration: 16s; animation-delay: -6s; }
 .gym-bg .l3 { top: 52%; right: 10%; width: 230px; } .gym-bg .l3 svg { animation-duration: 22s; animation-delay: -10s; }

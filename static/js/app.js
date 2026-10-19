@@ -82,7 +82,7 @@
       });
     };
     var request = function () { if (!ticking) { ticking = true; window.requestAnimationFrame(apply); } };
-    window.addEventListener("scroll", request, { passive: true });
+    // Only the login page uses pointer parallax; the app skips scroll-linked work so scrolling stays smooth.
     if (document.body.classList.contains("auth-body")) {
       window.addEventListener("pointermove", function (e) { px = e.clientX / window.innerWidth - 0.5; py = e.clientY / window.innerHeight - 0.5; request(); }, { passive: true });
     }
