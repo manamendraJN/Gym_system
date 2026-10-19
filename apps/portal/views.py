@@ -3,7 +3,7 @@ ever looked up inside that member's data, so another member's plan, appointment 
 from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -281,6 +281,23 @@ class NutritionView(_NutritionMixin, FormView):
 
 
 # ------------------------------------------------------------------------------------------- payments
+class QRView(PortalMixin, TemplateView):
+    """The member's own check-in QR code (token only), to show at the front desk or download."""
+
+    template_name = "portal/qr.html"
+
+
+class QRImageView(PortalMixin, View):
+    def get(self, request):
+        from apps.attendance.services import qr_png
+
+        response = HttpResponse(qr_png(self.member), content_type="image/png")
+        if request.GET.get("download"):
+            response["Content-Disposition"] = f'attachment; filename="gym-qr-{self.member.member_id}.png"'
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+
 class PaymentsView(PortalMixin, TemplateView):
     """The member's own fees, balances and payment history (never another member's)."""
 

@@ -34,6 +34,17 @@ def qr_payload(member):
     return f"{QR_PREFIX}{member.qr_token}"
 
 
+def qr_png(member):
+    """PNG bytes of the member's check-in QR code (token only)."""
+    from io import BytesIO
+
+    import qrcode
+
+    buf = BytesIO()
+    qrcode.make(qr_payload(member), box_size=10, border=3).save(buf, "PNG")
+    return buf.getvalue()
+
+
 def parse_qr(raw):
     raw = (raw or "").strip()
     return raw[len(QR_PREFIX):] if raw.startswith(QR_PREFIX) else raw
@@ -144,6 +155,9 @@ def scan_qr(raw, user, now=None):
             cache.set(key, 1, settings.QR_SCAN_WINDOW_SECONDS)
         raise CheckInDenied("Unrecognised QR code.")
     open_visit = Attendance.objects.filter(member=member, check_out__isnull=True).first()
-    if open_visit and open_visit.check_in >= (now or timezone.now()) - timedelta(hours=settings.ATTENDANCE_MAX_SESSION_HOURS):
+    current = now or timezone.now()
+    if open_visit and open_visit.check_in >= current - timedelta(hours=settings.ATTENDANCE_MAX_SESSION_HOURS):
+        if (current - open_visit.check_in).total_seconds() < settings.ATTENDANCE_SCAN_COOLDOWN_SECONDS:
+            raise CheckInDenied(f"{member.full_name} was just checked in at {timezone.localtime(open_visit.check_in):%H:%M}. Ignoring the repeated scan.")
         return "out", check_out(open_visit, user, now), member
     return "in", check_in(member, user, Method.QR, now), member

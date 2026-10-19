@@ -25,6 +25,7 @@
         <a class="nav-item-link {% if 'portal:workout' in url_name %}active{% endif %}" href="{% url 'portal:workouts' %}"><i class="bi bi-clipboard-check"></i>My workouts</a>
         <a class="nav-item-link {% if 'portal:appointments' in url_name or url_name == 'portal:book' or url_name == 'portal:reschedule' or url_name == 'portal:cancel' %}active{% endif %}" href="{% url 'portal:appointments' %}"><i class="bi bi-calendar-event"></i>My sessions</a>
         <a class="nav-item-link {% if 'portal:payments' in url_name or url_name == 'portal:receipt' %}active{% endif %}" href="{% url 'portal:payments' %}"><i class="bi bi-wallet2"></i>My payments</a>
+        <a class="nav-item-link {% if url_name == 'portal:qr' %}active{% endif %}" href="{% url 'portal:qr' %}"><i class="bi bi-qr-code"></i>My QR code</a>
         <a class="nav-item-link {% if url_name == 'portal:progress' %}active{% endif %}" href="{% url 'portal:progress' %}"><i class="bi bi-graph-up"></i>My progress</a>
         {% if NUTRITION_ENABLED %}<a class="nav-item-link {% if url_name == 'portal:nutrition' %}active{% endif %}" href="{% url 'portal:nutrition' %}"><i class="bi bi-egg-fried"></i>My nutrition</a>{% endif %}
       {% elif request.user|can:"dashboard.view" %}

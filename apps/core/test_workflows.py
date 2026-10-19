@@ -144,7 +144,9 @@ class WorkflowB_Attendance(Flow):
         self.assertContains(r, "checked in" if today_is_weekend else "only allows access on")
         scan = self.client.post(reverse("attendance:scan"), {"code": f"GYMQR:{self.ok.qr_token}"})
         self.assertContains(scan, "Checked in")
-        self.assertContains(self.client.post(reverse("attendance:scan"), {"code": f"GYMQR:{self.ok.qr_token}"}), "Checked out")
+        self.assertContains(self.client.post(reverse("attendance:scan"), {"code": f"GYMQR:{self.ok.qr_token}"}), "repeated scan", status_code=422)  # accidental re-scan
+        with override_settings(ATTENDANCE_SCAN_COOLDOWN_SECONDS=0):
+            self.assertContains(self.client.post(reverse("attendance:scan"), {"code": f"GYMQR:{self.ok.qr_token}"}), "Checked out")
         self.assertEqual(self.client.post(reverse("attendance:scan"), {"code": "GYMQR:" + "x" * 43}).status_code, 422)
 
 

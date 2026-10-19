@@ -4,7 +4,8 @@
 {% block content %}
 {% include "announcements/_banner.html" %}
 <div class="page-header"><div><h1>Hello, {{ member.full_name }}</h1><div class="text-muted">{{ member.member_id }}</div></div>
-  <a href="{% url 'portal:book' %}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book a session</a></div>
+  <div class="d-flex gap-2 flex-wrap"><a href="{% url 'portal:qr' %}" class="btn btn-outline-secondary"><i class="bi bi-qr-code me-1"></i>My QR code</a>
+  <a href="{% url 'portal:book' %}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book a session</a></div></div>
 <div class="row g-4">
   <div class="col-lg-6"><div class="card h-100"><div class="card-header">My membership</div><div class="card-body">
     {% if membership %}<div class="d-flex justify-content-between"><div><div class="fs-5 fw-semibold">{{ membership.plan.name }}</div>

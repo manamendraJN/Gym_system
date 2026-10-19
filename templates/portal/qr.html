@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}My check-in QR{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My check-in QR</h1></div>
+<div class="card mx-auto" style="max-width:380px"><div class="card-body text-center">
+  <div class="fw-bold fs-5">{{ GYM_NAME }}</div>
+  <img src="{% url 'portal:qr_image' %}" alt="Your personal check-in QR code" width="260" height="260" class="my-2">
+  <div class="fw-semibold">{{ member.full_name }}</div>
+  <div class="text-muted">{{ member.member_id }}</div>
+  <p class="small text-muted mt-2 mb-0">Show this code to the scanner at the front desk. It contains only a private token, no personal details. Do not share it: anyone with the code can check in as you.</p>
+</div></div>
+<div class="text-center mt-3 d-flex justify-content-center gap-2 flex-wrap">
+  <a class="btn btn-primary" href="{% url 'portal:qr_image' %}?download=1"><i class="bi bi-download me-1"></i>Download PNG</a>
+  <button class="btn btn-outline-secondary" type="button" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+{% endblock %}

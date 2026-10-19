@@ -251,6 +251,9 @@ payment state should be derived from payments, not stored on the membership.
 * **QR codes** encode only `GYMQR:<256-bit random token>` – no name, phone or ID. The token is a credential: the QR image is served
   `no-store` to staff with `attendance.manage` only, the token is never put in a URL, "Reset code" invalidates a lost card, and
   unrecognised scans are rate-limited per staff user (`QR_SCAN_MAX_FAILURES` per `QR_SCAN_WINDOW_SECONDS`).
+  Members see and download their own code under **My QR code** in the portal (`/me/qr/`); staff open it from the member's profile.
+  A second scan within `ATTENDANCE_SCAN_COOLDOWN_SECONDS` (60) of a check-in is rejected as accidental instead of checking the member out.
+  `python manage.py generate_member_qrs` (`--dry-run` to preview) gives a token to any member that lacks one and never changes existing codes.
 * **Reports:** attendance history (search, date range, method, sorting, pagination), per-member history with the same filters,
   and a daily report (totals, unique members, QR share, average visit, check-ins by hour). The dashboard shows today's check-ins,
   who is inside now and a 7-day chart.

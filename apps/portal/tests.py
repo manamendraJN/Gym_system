@@ -396,3 +396,28 @@ class PortalPaymentsTests(Base):
         self.assertContains(page, "Pending confirmation")
         self.assertNotContains(page, reverse("portal:receipt", args=[voided.pk]))  # (its number may still appear in the notification bell)
         self.assertContains(self.client.get(reverse("portal:receipt", args=[pending.pk])), "NOT A VALID RECEIPT")
+
+
+class PortalQRTests(Base):
+    def test_member_sees_and_downloads_only_their_own_code(self):
+        from apps.attendance import services as attendance_services
+
+        self.login(self.login_a)
+        page = self.client.get(reverse("portal:qr"))
+        self.assertContains(page, self.member.member_id)
+        self.assertNotContains(page, self.member.qr_token)  # the secret is only inside the image
+        image = self.client.get(reverse("portal:qr_image"))
+        self.assertEqual((image.status_code, image["Content-Type"]), (200, "image/png"))
+        self.assertEqual(image.content, attendance_services.qr_png(self.member))
+        self.assertNotEqual(image.content, attendance_services.qr_png(self.other))
+        self.assertIn("no-store", image["Cache-Control"])
+        download = self.client.get(reverse("portal:qr_image"), {"download": 1})
+        self.assertIn(f"gym-qr-{self.member.member_id}.png", download["Content-Disposition"])
+
+    def test_only_members_can_open_it(self):
+        self.client.logout()
+        self.assertEqual(self.client.get(reverse("portal:qr")).status_code, 302)
+        for role in ("receptionist", "trainer", "accountant"):
+            self.login(self.users[role])
+            self.assertEqual(self.client.get(reverse("portal:qr")).status_code, 403, role)
+            self.assertEqual(self.client.get(reverse("portal:qr_image")).status_code, 403, role)

@@ -2,6 +2,7 @@ from datetime import date, datetime, time, timedelta
 from datetime import timezone as dt_timezone
 
 UTC = dt_timezone.utc
+from io import StringIO
 from unittest import mock
 
 from django.core.cache import cache
@@ -206,6 +207,7 @@ class QRTests(Base):
         self.client.logout()
         self.assertEqual(self.client.get(url).status_code, 302)
 
+    @override_settings(ATTENDANCE_SCAN_COOLDOWN_SECONDS=0)  # the accidental-rescan guard has its own test (QRWorkflowTests)
     def test_scan_page_flow(self):
         today = timezone.localdate()
         m = make_member()
@@ -335,3 +337,52 @@ class PlanAccessRuleFormTests(Base):
         self.assertContains(r, 'value="2"')
         all_days = self.client.post(reverse("memberships:plan_create"), {**base, "name": "All", "allowed_weekdays": [str(i) for i in range(7)]})
         self.assertEqual(MembershipPlan.objects.get(name="All").allowed_weekdays, "")
+
+
+class QRWorkflowTests(Base):
+    def test_new_member_has_unique_token_and_scan_flow_with_cooldown(self):
+        other = make_member(full_name="Second Person", phone="0775559999")
+        self.assertTrue(self.member.qr_token and other.qr_token)
+        self.assertNotEqual(self.member.qr_token, other.qr_token)
+        action, visit, member = services.scan_qr(services.qr_payload(self.member), self.staff, now=at(TUESDAY))
+        self.assertEqual((action, member, visit.method), ("in", self.member, "qr"))
+        with self.assertRaisesMessage(CheckInDenied, "Ignoring the repeated scan"):
+            services.scan_qr(services.qr_payload(self.member), self.staff, now=at(TUESDAY) + timedelta(seconds=10))
+        self.assertEqual(Attendance.objects.filter(member=self.member, check_out__isnull=True).count(), 1)  # still inside
+        action, visit, _ = services.scan_qr(services.qr_payload(self.member), self.staff, now=at(TUESDAY) + timedelta(minutes=90))
+        self.assertEqual(action, "out")
+
+    def test_scan_view_messages_and_permissions(self):
+        self.login("receptionist")
+        live = make_member(full_name="Live Scanner", phone="0775556666")
+        self.give_membership(live, self.plan, timezone.localdate())
+        ok = self.client.post(reverse("attendance:scan"), {"code": services.qr_payload(live)})
+        self.assertContains(ok, "Checked in")
+        dup = self.client.post(reverse("attendance:scan"), {"code": services.qr_payload(live)})
+        self.assertContains(dup, "repeated scan", status_code=422)
+        self.assertEqual(Attendance.objects.filter(member=live).count(), 1)
+        lapsed = make_member(full_name="Lapsed Person", phone="0775558888")
+        self.assertContains(self.client.post(reverse("attendance:scan"), {"code": services.qr_payload(lapsed)}), "no active membership", status_code=422)
+        self.member.is_active = False
+        self.member.save()
+        Attendance.objects.all().delete()
+        self.assertContains(self.client.post(reverse("attendance:scan"), {"code": services.qr_payload(self.member)}), "deactivated", status_code=422)
+        self.assertContains(self.client.post(reverse("attendance:scan"), {"code": "GYMQR:" + "z" * 43}), "Unrecognised", status_code=422)
+        for role in ("trainer", "accountant", "member"):
+            self.login(role)
+            self.assertEqual(self.client.post(reverse("attendance:scan"), {"code": services.qr_payload(self.member)}).status_code, 403, role)
+
+    def test_staff_can_download_code_and_command_fills_missing_tokens(self):
+        from django.core.management import call_command
+
+        self.login("receptionist")
+        r = self.client.get(reverse("attendance:qr_image", args=[self.member.pk]), {"download": 1})
+        self.assertEqual(r["Content-Type"], "image/png")
+        self.assertIn(self.member.member_id, r["Content-Disposition"])
+        Member.objects.filter(pk=self.member.pk).update(qr_token=None)
+        other = make_member(full_name="Keeps Token", phone="0775557777")
+        before = other.qr_token
+        call_command("generate_member_qrs", stdout=StringIO())
+        self.member.refresh_from_db(); other.refresh_from_db()
+        self.assertTrue(self.member.qr_token)
+        self.assertEqual(other.qr_token, before)  # existing codes are never changed

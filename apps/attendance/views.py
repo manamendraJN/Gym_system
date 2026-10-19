@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
-from io import BytesIO
 
-import qrcode
 from django.contrib import messages
 from django.db.models import Count, Exists, OuterRef, Q
 from django.db.models.functions import ExtractHour
@@ -221,10 +219,9 @@ class MemberQRImageView(GymPermissionMixin, View):
 
     def get(self, request, member_pk):
         member = get_object_or_404(Member, pk=member_pk)
-        img = qrcode.make(services.qr_payload(member), box_size=8, border=2)
-        buf = BytesIO()
-        img.save(buf, "PNG")
-        response = HttpResponse(buf.getvalue(), content_type="image/png")
+        response = HttpResponse(services.qr_png(member), content_type="image/png")
+        if request.GET.get("download"):
+            response["Content-Disposition"] = f'attachment; filename="qr-{member.member_id}.png"'
         response["Cache-Control"] = "private, no-store"  # the image contains the member's check-in secret
         return response
 

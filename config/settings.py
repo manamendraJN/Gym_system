@@ -150,6 +150,7 @@ MEMBERSHIP_MAX_SUSPENSION_DAYS = 90  # suspended time credited back to the end d
 # --- Attendance & payments ---
 ATTENDANCE_MAX_SESSION_HOURS = 12   # an open check-in older than this is auto-closed so a missed check-out cannot lock a member out
 ATTENDANCE_BLOCK_UNPAID = False     # True: members whose membership has no payment recorded cannot check in
+ATTENDANCE_SCAN_COOLDOWN_SECONDS = 60  # a second scan this soon after check-in is treated as accidental (no check-out)
 QR_SCAN_MAX_FAILURES = 10           # failed QR lookups per staff user ...
 QR_SCAN_WINDOW_SECONDS = 300        # ... within this window before scanning is paused
 PAYMENT_MAX_BACKDATE_DAYS = 90
