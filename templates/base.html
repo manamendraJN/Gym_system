@@ -43,7 +43,7 @@
         <a class="nav-item-link {% if url_name == 'memberships:expired' %}active{% endif %}" href="{% url 'memberships:expired' %}"><i class="bi bi-calendar-x"></i>Expired</a>
       {% endif %}
       {% if request.user|can:"plans.view" %}
-        <a class="nav-item-link {% if 'plan_' in url_name %}active{% endif %}" href="{% url 'memberships:plan_list' %}"><i class="bi bi-tags"></i>Membership plans</a>
+        <a class="nav-item-link {% if 'memberships:plan_' in url_name %}active{% endif %}" href="{% url 'memberships:plan_list' %}"><i class="bi bi-tags"></i>Membership plans</a>
       {% endif %}
       {% if request.user|can:"attendance.view" %}
         <div class="nav-heading">Operations</div>

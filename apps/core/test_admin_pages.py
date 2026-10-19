@@ -149,3 +149,26 @@ class HealthAndDemoTests(Base):
             call_command("seed_demo", stdout=StringIO())
         self.assertFalse(Member.objects.exists())
 
+
+
+class SidebarHighlightTests(TestCase):
+    """Workout plans and Membership plans have different pages; only the matching sidebar link may be highlighted."""
+
+    def active_links(self, url):
+        import re
+
+        html = self.client.get(url).content.decode()
+        return re.findall(r'<a class="nav-item-link active" href="([^"]+)"', html)
+
+    def test_each_plan_page_highlights_only_its_own_link(self):
+        from apps.core.testing import make_users, PASSWORD
+
+        users = make_users()
+        self.client.login(username=users["manager"].username, password=PASSWORD)
+        sidebar_workouts, sidebar_memberships = reverse("workouts:plan_list"), reverse("memberships:plan_list")
+        self.assertNotEqual(sidebar_workouts, sidebar_memberships)
+        self.assertEqual(self.client.get(sidebar_workouts).status_code, 200)
+        self.assertEqual(self.active_links(sidebar_workouts), [sidebar_workouts])
+        self.assertEqual(self.active_links(sidebar_memberships), [sidebar_memberships])
+        self.assertEqual(self.active_links(reverse("workouts:plan_create")), [sidebar_workouts])
+        self.assertEqual(self.active_links(reverse("memberships:plan_create")), [sidebar_memberships])
