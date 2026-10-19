@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Exercise library{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Exercise library</h1>
+  {% if request.user|can:"workouts.manage" %}<a href="{% url 'workouts:exercise_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New exercise</a>{% endif %}</div>
+<div class="card mb-3"><div class="card-body"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-5">{% include "components/search_bar.html" with q=q placeholder="Search exercises" %}</div>
+  <div class="col-6 col-lg-3"><select name="muscle" class="form-select" aria-label="Muscle group"><option value="">Any muscle group</option>{% for v, l in muscles %}<option value="{{ v }}" {% if v == muscle %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><select name="category" class="form-select" aria-label="Category"><option value="">Any category</option>{% for v, l in categories %}<option value="{{ v }}" {% if v == category %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-lg-2 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>{% if q or muscle or category %}<a href="{% url 'workouts:exercise_list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+</form></div></div>
+<div class="row g-3">
+{% for e in object_list %}
+  <div class="col-sm-6 col-xl-4"><div class="card h-100">
+    {% if e.image %}<img src="{{ e.image.url }}" alt="" class="card-img-top" style="height:150px;object-fit:cover">{% endif %}
+    <div class="card-body"><a href="{{ e.get_absolute_url }}" class="fw-semibold text-reset text-decoration-none stretched-link">{{ e.name }}</a>
+      <div class="mt-1"><span class="badge text-bg-light border">{{ e.get_muscle_group_display }}</span> <span class="badge text-bg-light border">{{ e.get_category_display }}</span>{% if not e.is_active %} <span class="badge text-bg-secondary">Inactive</span>{% endif %}</div>
+      <p class="small text-muted mt-2 mb-0">{{ e.description|truncatechars:90 }}</p></div></div></div>
+{% empty %}<div class="col-12">{% include "components/empty_state.html" with icon="activity" title="No exercises found" %}</div>{% endfor %}
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

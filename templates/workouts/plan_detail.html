@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ plan.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ plan.name }}</h1>
+    <div class="text-muted">for <a href="{{ plan.member.get_absolute_url }}">{{ plan.member.full_name }}</a>{% if plan.trainer %} · trainer {{ plan.trainer.full_name }}{% endif %}</div>
+    <div class="mt-1">{% include "components/status_badge.html" with key=plan.status_key label=plan.status_label %}
+      <span class="text-muted small ms-1">{{ plan.start_date|date:"M j, Y" }}{% if plan.end_date %} – {{ plan.end_date|date:"M j, Y" }}{% endif %}</span></div></div>
+  <div class="d-flex flex-wrap gap-2"><a href="{% url 'workouts:plan_list' %}" class="btn btn-outline-secondary">Back</a>
+  {% if can_manage %}<a href="{% url 'workouts:item_add' plan.pk %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add exercise</a>
+    <a href="{% url 'workouts:plan_log' plan.pk %}" class="btn btn-outline-secondary"><i class="bi bi-check2-square me-1"></i>Record workout</a>
+    <a href="{% url 'workouts:plan_edit' plan.pk %}" class="btn btn-outline-secondary">Edit</a>
+    <a href="{% url 'workouts:plan_copy' plan.pk %}" class="btn btn-outline-secondary">Copy</a>{% endif %}</div>
+</div>
+{% if plan.goal or plan.description %}<p class="text-muted">{% if plan.goal %}<strong>Goal:</strong> {{ plan.goal }}. {% endif %}{{ plan.description }}</p>{% endif %}
+<div class="row g-4"><div class="col-lg-8">
+  {% for d in days %}<div class="card mb-3"><div class="card-header">{{ d.label }}</div><div class="table-responsive"><table class="table mb-0"><tbody>
+    {% for i in d.items %}<tr><td><a href="{{ i.exercise.get_absolute_url }}" class="fw-semibold">{{ i.exercise.name }}</a><div class="small text-muted">{{ i.exercise.get_muscle_group_display }}{% if i.notes %} · {{ i.notes }}{% endif %}</div></td>
+      <td class="text-nowrap">{{ i.prescription }}</td>
+      <td class="text-end text-nowrap">{% if can_manage %}<a href="{% url 'workouts:item_edit' i.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+        <form method="post" action="{% url 'workouts:item_remove' i.pk %}" class="d-inline" data-no-loading data-confirm="Remove this exercise from the plan? Exercises with recorded workouts are archived, not deleted.">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-no-loading><i class="bi bi-trash"></i></button></form>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+  {% empty %}<div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="clipboard-plus" title="No exercises yet" text="Add exercises and choose a day for each." %}</div></div>{% endfor %}
+  {% if archived %}<div class="card"><div class="card-header">Archived exercises <small class="text-muted fw-normal">(kept because workouts were recorded)</small></div><ul class="list-group list-group-flush">
+    {% for i in archived %}<li class="list-group-item small">{{ i.exercise.name }} · {{ i.get_weekday_display }} · {{ i.prescription }}</li>{% endfor %}</ul></div>{% endif %}
+</div><div class="col-lg-4">
+  <div class="card mb-3"><div class="card-header">Recorded workouts</div><ul class="list-group list-group-flush">
+    {% for s in sessions %}<li class="list-group-item small"><strong>{{ s.performed_on|date:"M j, Y" }}</strong> – {{ s.entries.all|length }} exercise{{ s.entries.all|length|pluralize }}
+      <div class="text-muted">{% for e in s.entries.all %}{{ e.exercise.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></li>
+    {% empty %}<li class="list-group-item text-muted small">None yet.</li>{% endfor %}</ul></div>
+  <div class="card mb-3"><div class="card-header">Change history</div><ul class="list-group list-group-flush">
+    {% for c in changes %}<li class="list-group-item small">{{ c.description }}<div class="text-muted">{{ c.user.display_name|default:"system" }} · {{ c.created_at|date:"M j, H:i" }}</div></li>{% endfor %}</ul></div>
+  {% if can_manage %}<div class="card"><div class="card-header">Plan status</div><div class="card-body d-flex flex-wrap gap-2">
+    {% for value, label in plan_statuses %}{% if value != plan.status %}<form method="post" action="{% url 'workouts:plan_status' plan.pk %}" data-no-loading>{% csrf_token %}<input type="hidden" name="status" value="{{ value }}"><button class="btn btn-sm btn-outline-secondary" data-no-loading>Mark {{ label|lower }}</button></form>{% endif %}{% endfor %}</div></div>{% endif %}
+</div></div>
+{% endblock %}

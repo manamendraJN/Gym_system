@@ -1,0 +1,6 @@
+{% extends "components/form_page.html" %}
+{% block title %}Copy plan{% endblock %}
+{% block back_url %}{{ plan.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ plan.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="text-muted">Copies the active exercises of <strong>{{ plan.name }}</strong> to another member. The original plan is not changed.</p>{% endblock %}
+{% block submit %}Copy plan{% endblock %}

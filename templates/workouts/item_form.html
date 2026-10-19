@@ -1,0 +1,4 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{{ plan.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ plan.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="text-muted">Plan: <strong>{{ plan.name }}</strong> for {{ plan.member.full_name }}</p>{% endblock %}
