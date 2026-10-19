@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Receipt {{ payment.receipt_number }}{% endblock %}
+{% block content %}
+<div class="page-header no-print"><h1>Receipt</h1>
+  <div class="d-flex gap-2">
+    <a href="{{ payment.get_absolute_url }}" class="btn btn-outline-secondary">Back</a>
+    <button type="button" class="btn btn-primary" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+    <a href="{% url 'payments:receipt_pdf' payment.pk %}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</a>
+  </div></div>
+<div class="receipt"><div class="card"><div class="card-body p-4">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div><div class="fs-4 fw-bold"><i class="bi bi-lightning-charge-fill text-primary"></i> {{ gym_name }}</div>
+      <div class="text-muted small">{% if is_refund %}REFUND RECEIPT{% else %}PAYMENT RECEIPT{% endif %}</div></div>
+    <div class="text-end"><div class="fw-bold">{{ payment.receipt_number }}</div><div class="small text-muted">{{ payment.paid_on|date:"M j, Y" }}</div></div>
+  </div>
+  {% if not is_valid %}<div class="text-center my-3"><span class="watermark">{{ payment.get_status_display|upper }} – NOT A VALID RECEIPT</span></div>{% endif %}
+  <div class="row mb-3 small">
+    <div class="col-6"><div class="text-muted">Member</div><div class="fw-semibold">{{ member.full_name }}</div><div>{{ member.member_id }}</div><div>{{ member.phone }}</div></div>
+    <div class="col-6"><div class="text-muted">{{ item_kind }}</div><div class="fw-semibold">{{ item_label }}</div><div>{{ item_period }}</div></div>
+  </div>
+  <div class="row mb-3 small">
+    <div class="col-6"><div class="text-muted">Method</div><div>{{ payment.get_method_display }}</div></div>
+    <div class="col-6"><div class="text-muted">Transaction reference</div><div>{{ payment.reference }}</div>{% if payment.external_reference %}<div class="text-muted">{{ payment.external_reference }}</div>{% endif %}</div>
+  </div>
+  {% if is_refund %}<p class="small">Refund of {{ payment.refund_of.receipt_number }} – {{ payment.reason }}</p>{% endif %}
+  <div class="money-row"><span>{{ item_kind }} charge (amount due)</span><span>{{ amount_due|lkr }}</span></div>
+  <div class="money-row"><span>{% if is_refund %}Amount refunded{% else %}Amount paid (this receipt){% endif %}</span><strong>{{ payment.amount|lkr }}</strong></div>
+  <div class="money-row"><span>Total paid to date (net of refunds)</span><span>{{ net_paid|lkr }}</span></div>
+  <div class="money-row total"><span>Outstanding balance</span><span>{{ outstanding|lkr }}</span></div>
+  <p class="small text-muted mt-3 mb-0">Recorded by {{ payment.recorded_by.display_name|default:"—" }} on {{ payment.created_at|date:"M j, Y H:i" }}. Balances are shown as at the time of this receipt.</p>
+</div></div></div>
+{% endblock %}

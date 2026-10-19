@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1>
+  <a href="{% if payment %}{{ payment.get_absolute_url }}{% else %}{{ item_url }}{% endif %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="row g-4">
+  <div class="col-lg-7"><div class="card"><div class="card-body">
+    <p class="mb-3"><strong>{{ member.full_name }}</strong> <span class="text-muted">({{ member.member_id }})</span><br>
+      <span class="text-muted">{{ item_label }}</span></p>
+    {% if payment %}<p class="mb-3">Entry <strong>{{ payment.receipt_number }}</strong> · {{ payment.amount|lkr }} · {{ payment.get_method_display }}</p>{% endif %}
+    {% if intro %}<div class="alert alert-{% if danger %}warning{% else %}info{% endif %} small"><i class="bi bi-info-circle me-1"></i>{{ intro }}</div>{% endif %}
+    <form method="post" novalidate {% if danger %}data-confirm="This is recorded permanently. Continue?"{% endif %}>
+      {% csrf_token %}
+      {% include "components/form_errors.html" %}
+      {% for field in form.visible_fields %}{% include "components/form_field.html" with field=field %}{% endfor %}
+      {% for field in form.hidden_fields %}{{ field }}{% endfor %}
+      <button class="btn {% if danger %}btn-danger{% else %}btn-primary{% endif %}" type="submit">{{ submit_label }}</button>
+      <a class="btn btn-link" href="{% if payment %}{{ payment.get_absolute_url }}{% else %}{{ item_url }}{% endif %}">Cancel</a>
+    </form>
+  </div></div></div>
+  {% if billing %}<div class="col-lg-5"><div class="card"><div class="card-header">Membership balance</div><div class="card-body">{% include "payments/_balance.html" with b=billing %}</div></div></div>{% endif %}
+</div>
+{% endblock %}

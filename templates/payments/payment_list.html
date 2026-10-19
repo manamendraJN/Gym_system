@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Payments</h1>
+  <a href="{% url 'payments:outstanding' %}" class="btn btn-outline-secondary"><i class="bi bi-receipt me-1"></i>Outstanding balances</a></div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-4">{% include "components/stat_card.html" with label="Received" value=received|lkr icon="cash-coin" tone="green" sub="Completed payments in this view" %}</div>
+  <div class="col-md-4">{% include "components/stat_card.html" with label="Refunded" value=refunded|lkr icon="arrow-counterclockwise" tone="red" sub="Completed refunds in this view" %}</div>
+  <div class="col-md-4">{% include "components/stat_card.html" with label="Net collected" value=net|lkr icon="wallet2" tone="blue" sub="Received minus refunded" %}</div>
+</div>
+
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Receipt, reference, member name/ID/phone" %}</div>
+      <div class="col-6 col-lg-2"><select name="kind" class="form-select" aria-label="Type"><option value="">Any type</option>
+        {% for v, l in kinds %}<option value="{{ v }}" {% if v == kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-2"><select name="method" class="form-select" aria-label="Method"><option value="">Any method</option>
+        {% for v, l in methods %}<option value="{{ v }}" {% if v == method %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-2"><select name="status" class="form-select" aria-label="Status"><option value="">Any status</option>
+        {% for v, l in statuses %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-2"></div>
+      <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+      <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+      <div class="col-lg-2 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if filtered_on %}<a href="{% url 'payments:list' %}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+    </form>
+  </div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>Receipt</th>{% include "components/sort_th.html" with col=columns.date %}{% include "components/sort_th.html" with col=columns.member %}<th>Type</th><th>Method</th>{% include "components/sort_th.html" with col=columns.amount %}<th>Status</th></tr></thead>
+    <tbody>
+    {% for p in object_list %}
+      <tr>
+        <td class="text-nowrap"><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.receipt_number }}</a><div><small class="text-muted">{{ p.reference }}</small></div></td>
+        <td class="text-nowrap">{{ p.paid_on|date:"M j, Y" }}</td>
+        <td><a href="{{ p.member.get_absolute_url }}" class="text-reset">{{ p.member.full_name }}</a><div><small class="text-muted">{{ p.member.member_id }} · {{ p.item_label }}</small></div></td>
+        <td>{{ p.get_kind_display }}</td><td>{{ p.get_method_display }}</td>
+        <td class="text-nowrap fw-semibold {% if p.kind == 'refund' %}text-danger{% endif %}">{% if p.kind == 'refund' %}−{% elif p.kind == 'adjustment' and p.amount > 0 %}+{% endif %}{{ p.amount|lkr }}</td>
+        <td>{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7">{% include "components/empty_state.html" with icon="cash-stack" title="No payments found" text="Payments are recorded from a membership's page." %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

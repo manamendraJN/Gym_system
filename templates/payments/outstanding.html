@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Outstanding balances{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Outstanding balances</h1><a href="{% url 'payments:list' %}" class="btn btn-outline-secondary">All payments</a></div>
+<div class="alert alert-info small"><i class="bi bi-info-circle me-1"></i>These are unpaid membership fees – money <strong>owed</strong>, not revenue. Cancelled memberships are excluded.</div>
+<div class="row g-3 mb-3"><div class="col-md-4">{% include "components/stat_card.html" with label="Total outstanding" value=total_outstanding|lkr icon="receipt" tone="amber" sub="In this view" %}</div></div>
+<div class="card">
+  <div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+    <div class="col-md-6">{% include "components/search_bar.html" with q=q placeholder="Member name, ID or phone" %}</div>
+    <div class="col-6 col-md-3"><select name="status" class="form-select" aria-label="Status"><option value="">Unpaid &amp; partial</option>
+      <option value="unpaid" {% if status == "unpaid" %}selected{% endif %}>Unpaid</option><option value="partial" {% if status == "partial" %}selected{% endif %}>Partially paid</option></select></div>
+    <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+      {% if q or status %}<a href="{% url 'payments:outstanding' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  </form></div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr>{% include "components/sort_th.html" with col=columns.member %}<th>Plan</th>{% include "components/sort_th.html" with col=columns.end %}<th>Due</th><th>Paid</th>{% include "components/sort_th.html" with col=columns.outstanding %}<th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for m in object_list %}
+      <tr>
+        <td><a href="{{ m.member.get_absolute_url }}" class="fw-semibold">{{ m.member.full_name }}</a><div><small class="text-muted">{{ m.member.member_id }} · {{ m.member.phone }}</small></div></td>
+        <td>{{ m.plan.name }}</td><td class="text-nowrap">{{ m.end_date|date:"M j, Y" }}</td>
+        <td class="text-nowrap">{{ m.amount_due|lkr }}</td><td class="text-nowrap">{{ m.net_paid|lkr }}</td>
+        <td class="text-nowrap fw-bold text-danger">{{ m.outstanding|lkr }}</td>
+        <td>{% include "components/status_badge.html" with key=m.payment_status label=m.payment_status|payment_status %}</td>
+        <td class="text-end text-nowrap"><a href="{{ m.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="Membership"><i class="bi bi-eye"></i></a>
+          {% if request.user|can:"payments.manage" %}<a href="{% url 'payments:record' m.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-cash me-1"></i>Pay</a>{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8">{% include "components/empty_state.html" with icon="check2-circle" title="Nothing outstanding" text="Every membership is paid up." %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% if unpaid_sessions %}
+<div class="card mt-4"><div class="card-header">Unpaid personal-training sessions</div><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>Member</th><th>Session</th><th>Fee</th><th>Paid</th><th>Outstanding</th><th></th></tr></thead><tbody>
+  {% for a in unpaid_sessions %}<tr><td><a href="{{ a.member.get_absolute_url }}" class="fw-semibold">{{ a.member.full_name }}</a><div><small class="text-muted">{{ a.member.member_id }}</small></div></td>
+    <td class="text-nowrap">{{ a.start|date:"M j, Y H:i" }}<div><small class="text-muted">{{ a.trainer.full_name }}</small></div></td>
+    <td class="text-nowrap">{{ a.amount_due|lkr }}</td><td class="text-nowrap">{{ a.net_paid|lkr }}</td><td class="text-nowrap fw-bold text-danger">{{ a.outstanding|lkr }}</td>
+    <td class="text-end"><a href="{{ a.get_absolute_url }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+      {% if request.user|can:"payments.manage" %}<a href="{% url 'payments:record_appointment' a.pk %}" class="btn btn-sm btn-primary">Pay</a>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endif %}
+{% endblock %}

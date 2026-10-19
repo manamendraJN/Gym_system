@@ -1,0 +1,9 @@
+{% load gym %}{# expects b: a membership annotated by payments.billing.with_billing #}
+<div class="money-row"><span>Membership charge</span><span>{{ b.price|lkr }}</span></div>
+{% if b.adjustment_total %}<div class="money-row"><span>Adjustments</span><span>{{ b.adjustment_total|lkr }}</span></div>{% endif %}
+<div class="money-row"><span>Amount due</span><strong>{{ b.amount_due|lkr }}</strong></div>
+<div class="money-row"><span>Paid</span><span>{{ b.paid_total|lkr }}</span></div>
+{% if b.refund_total %}<div class="money-row"><span>Refunded</span><span>−{{ b.refund_total|lkr }}</span></div>{% endif %}
+{% if b.pending_total %}<div class="money-row text-muted"><span>Awaiting confirmation</span><span>{{ b.pending_total|lkr }}</span></div>{% endif %}
+<div class="money-row total"><span>Outstanding</span><span>{{ b.outstanding|lkr }}</span></div>
+<div class="mt-2">{% include "components/status_badge.html" with key=b.payment_status label=b.payment_status|payment_status %}</div>

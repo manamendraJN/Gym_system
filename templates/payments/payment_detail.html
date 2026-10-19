@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ object.receipt_number }}{% endblock %}
+{% block content %}
+{% with p=object %}
+<div class="page-header">
+  <div><h1>{{ p.receipt_number }}</h1>
+    <div class="text-muted">{{ p.get_kind_display }} · {{ p.reference }}</div>
+    <div class="mt-1">{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</div></div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if has_receipt %}
+      <a href="{% url 'payments:receipt' p.pk %}" class="btn btn-primary"><i class="bi bi-receipt me-1"></i>Receipt</a>
+      <a href="{% url 'payments:receipt_pdf' p.pk %}" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-pdf me-1"></i>PDF</a>
+    {% endif %}
+    {% if can_confirm %}
+      <form method="post" action="{% url 'payments:confirm' p.pk %}" data-no-loading data-confirm="Confirm that this payment of {{ p.amount|lkr }} has been received?">{% csrf_token %}
+        <button class="btn btn-success" type="submit" data-no-loading><i class="bi bi-check2-circle me-1"></i>Confirm received</button></form>
+      <a href="{% url 'payments:reject' p.pk %}" class="btn btn-outline-danger">Reject</a>
+    {% endif %}
+    {% if can_refund %}<a href="{% url 'payments:refund' p.pk %}" class="btn btn-outline-danger"><i class="bi bi-arrow-counterclockwise me-1"></i>Refund</a>{% endif %}
+    {% if can_void %}<a href="{% url 'payments:void' p.pk %}" class="btn btn-outline-secondary"><i class="bi bi-slash-circle me-1"></i>Void</a>{% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="card"><div class="card-header">Entry</div><div class="card-body">
+    <dl class="detail-list mb-0">
+      <dt>Amount</dt><dd class="fs-4 fw-bold">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|lkr }}</dd>
+      <dt>Member</dt><dd><a href="{{ p.member.get_absolute_url }}">{{ p.member.full_name }}</a> ({{ p.member.member_id }})</dd>
+      <dt>{% if p.is_appointment %}Training session{% else %}Membership{% endif %}</dt><dd><a href="{{ p.target_url }}">{{ p.item_label }}</a> · {{ p.item_period }}</dd>
+      <dt>Date</dt><dd>{{ p.paid_on|date:"M j, Y" }}</dd>
+      {% if p.kind != 'adjustment' %}<dt>Method</dt><dd>{{ p.get_method_display }}</dd>{% endif %}
+      {% if p.external_reference %}<dt>Bank / terminal reference</dt><dd>{{ p.external_reference }}</dd>{% endif %}
+      {% if p.refund_of %}<dt>Refund of</dt><dd><a href="{{ p.refund_of.get_absolute_url }}">{{ p.refund_of.receipt_number }}</a></dd>{% endif %}
+      {% if p.reason %}<dt>Reason</dt><dd>{{ p.reason }}</dd>{% endif %}
+      {% if p.notes %}<dt>Notes</dt><dd>{{ p.notes }}</dd>{% endif %}
+      <dt>Recorded by</dt><dd>{{ p.recorded_by.display_name|default:"—" }} on {{ p.created_at|date:"M j, Y H:i" }}</dd>
+    </dl></div></div></div>
+  <div class="col-lg-6">
+    <div class="card mb-4"><div class="card-header">Membership balance now</div><div class="card-body">
+      {% include "payments/_balance.html" with b=billing %}</div></div>
+    {% if refunds %}<div class="card mb-4"><div class="card-header">Refunds against this payment</div>
+      <ul class="list-group list-group-flush">{% for r in refunds %}<li class="list-group-item d-flex justify-content-between">
+        <a href="{{ r.get_absolute_url }}">{{ r.receipt_number }}</a><span>{{ r.amount|lkr }} {% include "components/status_badge.html" with key=r.status label=r.get_status_display %}</span></li>{% endfor %}</ul></div>{% endif %}
+    <div class="card"><div class="card-header">Audit trail</div>
+      <ul class="list-group list-group-flush">{% for a in audit %}<li class="list-group-item small">
+        <strong>{{ a.action|capfirst }}</strong>{% if a.old_status %} ({{ a.old_status }} → {{ a.new_status }}){% endif %} by {{ a.user.display_name|default:"system" }}
+        <span class="text-muted">· {{ a.created_at|date:"M j, Y H:i" }}</span>{% if a.note %}<div class="text-muted">{{ a.note }}</div>{% endif %}</li>{% endfor %}</ul></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
