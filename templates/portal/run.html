@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load static gym %}
+{% block title %}Workout – {{ plan.name }}{% endblock %}
+{% block content %}
+{% with cur=state.current %}
+<div class="page-header">
+  <div><h1>{{ plan.name }}</h1>
+    <div class="text-muted">{{ run.get_weekday_display }} · started {{ run.started_at|date:"H:i" }}
+      · {% if run.status == "active" %}{% include "components/status_badge.html" with key="active" label="In progress" %}{% elif run.status == "completed" %}{% include "components/status_badge.html" with key="completed" label="Completed" %}{% else %}{% include "components/status_badge.html" with key="cancelled" label="Ended early" %}{% endif %}</div></div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a href="{% url 'portal:workout' plan.pk %}" class="btn btn-outline-secondary">Back to plan</a>
+    {% if run.status == "active" %}<form method="post" action="{% url 'portal:run_end' run.pk %}" data-no-loading data-confirm="End this workout now? What you have completed so far is saved, the rest is marked as not done.">{% csrf_token %}<button class="btn btn-outline-danger" data-no-loading><i class="bi bi-stop-circle me-1"></i>End workout</button></form>{% endif %}
+  </div>
+</div>
+
+<div class="card mb-3"><div class="card-body">
+  <div class="row g-3 align-items-center">
+    <div class="col-md-5"><div class="d-flex justify-content-between small text-muted mb-1"><span>Progress</span><span>{{ state.done_sets }} of {{ state.total_sets }} sets · {{ state.done_exercises }} of {{ state.exercises|length }} exercises</span></div>
+      <div class="progress" role="progressbar" aria-label="Workout progress" aria-valuenow="{{ state.percent }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width: {{ state.percent }}%"></div></div></div>
+    <div class="col-6 col-md-3"><div class="stat-label">Total time</div><div class="stat-value" {% if run.status == "active" %}id="run-total" data-since="{{ run.started_at|date:'U' }}000"{% endif %}>{{ run.duration|duration_clock }}</div></div>
+    <div class="col-6 col-md-4 text-md-end">{% if run.status == "active" %}<button type="button" class="btn btn-outline-secondary" id="mute-toggle" aria-pressed="false"><i class="bi bi-volume-up me-1"></i><span>Sound on</span></button>{% endif %}</div>
+  </div>
+</div></div>
+
+{% if run.status != "active" %}
+<div class="card mb-3"><div class="card-header">{% if run.status == "completed" %}Workout complete{% else %}Workout ended early{% endif %}</div><div class="card-body">
+  <div class="row g-3 text-center">
+    <div class="col-6 col-md-3"><div class="stat-label">Total duration</div><div class="stat-value">{{ run.duration|duration_clock }}</div></div>
+    <div class="col-6 col-md-3"><div class="stat-label">Exercises completed</div><div class="stat-value">{{ state.done_exercises }} / {{ state.exercises|length }}</div></div>
+    <div class="col-6 col-md-3"><div class="stat-label">Sets completed</div><div class="stat-value">{{ state.done_sets }} / {{ state.total_sets }}</div></div>
+    <div class="col-6 col-md-3"><div class="stat-label">Progress</div><div class="stat-value">{{ state.percent }}%</div></div>
+  </div></div></div>
+{% elif cur %}
+<div class="card mb-3 border-secondary" id="current-card"><div class="card-header d-flex justify-content-between"><span>Current exercise</span>
+  <span id="phase-badge">{% if cur.phase == "working" %}{% include "components/status_badge.html" with key="active" label="Set in progress" %}{% elif cur.phase == "resting" %}{% include "components/status_badge.html" with key="pending" label="Resting" %}{% else %}{% include "components/status_badge.html" with key="active" label="Ready for next set" %}{% endif %}</span></div>
+  <div class="card-body text-center py-4">
+    <h2 class="h4 mb-1">{{ cur.exercise.name }}</h2>
+    <div class="text-muted mb-3">
+      {% if cur.phase == "working" %}Set {{ cur.set_number }} of {{ cur.target_sets }}{% else %}Set {{ cur.done_count }} of {{ cur.target_sets }} done · next is set {{ cur.set_number }}{% endif %}
+      · {% if cur.target_reps %}{{ cur.target_reps }} reps{% else %}{{ cur.target_duration_minutes }} min{% endif %}{% if cur.target_weight_kg %} · {{ cur.target_weight_kg|floatformat:"-2" }} kg{% endif %}
+      · rest {{ cur.rest_seconds|clock }}</div>
+
+    {% if cur.phase == "working" %}
+      <div class="display-3 fw-semibold mb-1" id="run-timer" data-phase="working" data-since="{{ cur.open_set.started_at|date:'U' }}000" data-server-now="{{ server_now_ms }}" aria-live="off"><span id="timer-text">00:00</span></div>
+      <div class="text-muted mb-3">Set time</div>
+      <form method="post" action="{% url 'portal:run_finish_set' run.pk cur.open_set.pk %}" data-no-loading>{% csrf_token %}
+        <button class="btn btn-primary btn-lg" data-no-loading><i class="bi bi-check2-circle me-1"></i>Finish Set</button></form>
+    {% else %}
+      <div class="display-3 fw-semibold mb-1" id="run-timer" data-phase="{{ cur.phase }}" data-deadline="{{ cur.rest_ends|date:'U' }}000" data-server-now="{{ server_now_ms }}"><span id="timer-text">{{ cur.rest_remaining|clock }}</span></div>
+      <div class="text-muted mb-2" id="timer-label">{% if cur.phase == "resting" %}Rest remaining{% else %}Rest finished{% endif %}</div>
+      <div class="alert alert-info py-2 mx-auto {% if cur.phase == 'resting' %}d-none{% endif %}" style="max-width:420px" id="rest-done" role="alert"><strong>Rest finished.</strong> You can start set {{ cur.set_number }}.</div>
+      <form method="post" action="{% url 'portal:run_next_set' run.pk cur.pk %}" data-no-loading>{% csrf_token %}
+        <button class="btn btn-primary btn-lg" id="start-set" data-no-loading><i class="bi bi-play-fill me-1"></i>Start Set {{ cur.set_number }}</button></form>
+    {% endif %}
+    {% if cur.exercise.instructions %}<details class="small text-start mx-auto mt-4" style="max-width:520px"><summary>How to do it</summary>{{ cur.exercise.instructions|linebreaksbr }}</details>{% endif %}
+  </div></div>
+{% elif state.next_exercise %}
+<div class="alert alert-info"><strong>Ready for the next exercise.</strong> {{ state.next_exercise.exercise.name }} is next. Start it when you are ready.</div>
+{% endif %}
+
+<div class="card"><div class="card-header">Exercises</div><ul class="list-group list-group-flush">
+  {% for e in state.exercises %}<li class="list-group-item">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div><strong>{{ forloop.counter }}. {{ e.exercise.name }}</strong>
+        <div class="small text-muted">{{ e.target_sets }} × {% if e.target_reps %}{{ e.target_reps }} reps{% else %}{{ e.target_duration_minutes }} min{% endif %}{% if e.target_weight_kg %} · {{ e.target_weight_kg|floatformat:"-2" }} kg{% endif %} · rest {{ e.rest_seconds|clock }}</div></div>
+      <div class="d-flex align-items-center gap-2">
+        {% if e.status == "completed" %}{% include "components/status_badge.html" with key="completed" label="Completed" %}<span class="small text-muted">{{ e.done_count }}/{{ e.target_sets }} sets · {{ e.duration|duration_clock }}</span>
+        {% elif e.status == "active" %}{% include "components/status_badge.html" with key="active" label="In progress" %}<span class="small text-muted">{{ e.done_count }}/{{ e.target_sets }} sets</span>
+        {% elif e.status == "skipped" %}{% include "components/status_badge.html" with key="cancelled" label="Not done" %}<span class="small text-muted">{{ e.done_count }}/{{ e.target_sets }} sets</span>
+        {% else %}{% include "components/status_badge.html" with key="pending" label="Upcoming" %}
+          {% if run.status == "active" %}<form method="post" action="{% url 'portal:run_exercise_start' run.pk e.pk %}" data-no-loading>{% csrf_token %}
+            <button class="btn btn-sm btn-outline-primary" data-no-loading {% if cur or e != state.next_exercise %}disabled{% endif %}>Start Exercise</button></form>{% endif %}
+        {% endif %}
+      </div></div>
+    {% if e.set_list and run.status != "active" or e.status == "completed" or e.status == "active" %}{% if e.set_list %}
+      <div class="table-responsive mt-2"><table class="table table-sm mb-0"><thead><tr><th>Set</th><th>Set time</th><th>Rest (set / actual)</th></tr></thead><tbody>
+        {% for s in e.set_list %}<tr><td>{{ s.number }}</td><td>{% if s.completed_at %}{{ s.elapsed|duration_clock }}{% else %}not finished{% endif %}</td>
+          <td>{% if s.number == 1 %}–{% else %}{{ s.rest_before_seconds|clock }} / {{ s.rest_before_actual|duration_clock }}{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div>{% endif %}{% endif %}
+  </li>{% endfor %}
+</ul></div>
+{% endwith %}
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/workout_run.js' %}"></script>{% endblock %}

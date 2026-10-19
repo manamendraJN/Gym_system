@@ -80,16 +80,26 @@ class PlanForm(StyledFormMixin, forms.ModelForm):
 class PlanItemForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = PlanExercise
-        fields = ["weekday", "exercise", "sets", "reps", "weight_kg", "duration_minutes", "rest_seconds", "notes"]
+        fields = ["weekday", "exercise", "position", "sets", "reps", "weight_kg", "duration_minutes", "rest_seconds", "notes"]
         widgets = {"weight_kg": forms.NumberInput(attrs={"step": "0.25", "min": "0"})}
-        labels = {"weight_kg": "Weight (kg)", "duration_minutes": "Duration (min)", "rest_seconds": "Rest (seconds)"}
+        labels = {"weight_kg": "Weight (kg)", "duration_minutes": "Duration (min)", "rest_seconds": "Rest between sets (seconds)",
+                  "position": "Order on this day (1 = first)", "sets": "Number of sets", "reps": "Target repetitions per set"}
+        help_texts = {"rest_seconds": "Counted down after each set, e.g. 60 = 1 minute, 90 = 1 min 30 s. Leave empty for no rest.",
+                      "position": "Exercises run in this order. Leave empty to add it last."}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields["position"].required = False
         active = Exercise.objects.filter(is_active=True)
         if self.instance.pk:
             active = Exercise.objects.filter(is_active=True) | Exercise.objects.filter(pk=self.instance.exercise_id)
         self.fields["exercise"].queryset = active.order_by("name")
+
+    def clean_position(self):
+        value = self.cleaned_data.get("position")
+        if value is None and self.instance.pk:
+            return self.instance.position  # editing without touching the order keeps it
+        return value
 
     def clean(self):
         c = super().clean()

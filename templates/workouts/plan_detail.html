@@ -29,6 +29,10 @@
     {% for s in sessions %}<li class="list-group-item small"><strong>{{ s.performed_on|date:"M j, Y" }}</strong> – {{ s.entries.all|length }} exercise{{ s.entries.all|length|pluralize }}
       <div class="text-muted">{% for e in s.entries.all %}{{ e.exercise.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</div></li>
     {% empty %}<li class="list-group-item text-muted small">None yet.</li>{% endfor %}</ul></div>
+  <div class="card mb-3"><div class="card-header">Guided workouts</div><ul class="list-group list-group-flush">
+    {% for r in runs %}<li class="list-group-item small"><strong>{{ r.started_at|date:"M j, Y H:i" }}</strong> · {{ r.get_weekday_display }}
+      <div class="text-muted">{{ r.get_status_display }} · {{ r.duration|duration_clock }} · {{ r.exercises.all|length }} exercise{{ r.exercises.all|length|pluralize }}</div></li>
+    {% empty %}<li class="list-group-item text-muted small">None yet.</li>{% endfor %}</ul></div>
   <div class="card mb-3"><div class="card-header">Change history</div><ul class="list-group list-group-flush">
     {% for c in changes %}<li class="list-group-item small">{{ c.description }}<div class="text-muted">{{ c.user.display_name|default:"system" }} · {{ c.created_at|date:"M j, H:i" }}</div></li>{% endfor %}</ul></div>
   {% if can_manage %}<div class="card"><div class="card-header">Plan status</div><div class="card-body d-flex flex-wrap gap-2">

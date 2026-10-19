@@ -1,14 +1,17 @@
 {% extends "base.html" %}
+{% load gym %}
 {% block title %}{{ plan.name }}{% endblock %}
 {% block content %}
 <div class="page-header"><div><h1>{{ plan.name }}</h1><div class="text-muted">{{ plan.start_date|date:"M j, Y" }}{% if plan.end_date %} – {{ plan.end_date|date:"M j, Y" }}{% endif %}{% if plan.trainer %} · {{ plan.trainer.full_name }}{% endif %}</div></div>
   <div class="d-flex gap-2"><a href="{% url 'portal:workouts' %}" class="btn btn-outline-secondary">Back</a>
   {% if plan.status == "active" %}<a href="{% url 'portal:workout_log' plan.pk %}" class="btn btn-primary"><i class="bi bi-check2-square me-1"></i>Record a workout</a>{% endif %}</div></div>
 {% if plan.description %}<p class="text-muted">{{ plan.description }}</p>{% endif %}
-{% for d in days %}<div class="card mb-3"><div class="card-header d-flex justify-content-between">{{ d.label }} {% if plan.status == "active" %}<a class="small fw-normal" href="{% url 'portal:workout_log' plan.pk %}?day={{ d.num }}">Record this day</a>{% endif %}</div>
+{% if active_run %}<div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2"><span><strong>A workout is in progress.</strong> Pick up where you left off.</span><a class="btn btn-primary btn-sm" href="{{ active_run.get_absolute_url }}"><i class="bi bi-play-fill me-1"></i>Resume workout</a></div>{% endif %}
+{% for d in days %}<div class="card mb-3"><div class="card-header d-flex justify-content-between">{{ d.label }} {% if plan.status == "active" %}<span class="d-flex gap-3 align-items-center"><form method="post" action="{% url 'portal:run_start' plan.pk %}" class="d-inline" data-no-loading>{% csrf_token %}<input type="hidden" name="weekday" value="{{ d.num }}"><button class="btn btn-sm btn-primary" data-no-loading><i class="bi bi-play-fill me-1"></i>{% if active_run %}Resume workout{% else %}Start Workout{% endif %}</button></form><a class="small fw-normal" href="{% url 'portal:workout_log' plan.pk %}?day={{ d.num }}">Record manually</a></span>{% endif %}</div>
   <div class="table-responsive"><table class="table mb-0"><tbody>{% for i in d.items %}<tr><td><strong>{{ i.exercise.name }}</strong><div class="small text-muted">{{ i.exercise.get_muscle_group_display }}{% if i.notes %} · {{ i.notes }}{% endif %}</div>
     {% if i.exercise.instructions %}<details class="small mt-1"><summary>How to</summary>{{ i.exercise.instructions|linebreaksbr }}{% if i.exercise.video_url %}<div><a href="{{ i.exercise.video_url }}" target="_blank" rel="noopener noreferrer">Watch video</a></div>{% endif %}</details>{% endif %}</td>
     <td class="text-nowrap">{{ i.prescription }}</td></tr>{% endfor %}</tbody></table></div></div>
 {% empty %}<div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="clipboard" title="No exercises in this plan yet" %}</div></div>{% endfor %}
+{% if runs %}<div class="card mb-3"><div class="card-header">Guided workouts</div><ul class="list-group list-group-flush">{% for r in runs %}<li class="list-group-item d-flex justify-content-between"><span><a href="{{ r.get_absolute_url }}">{{ r.started_at|date:"M j, Y H:i" }}</a> · {{ r.get_weekday_display }}</span><span class="text-muted small">{{ r.get_status_display }} · {{ r.duration|duration_clock }}</span></li>{% endfor %}</ul></div>{% endif %}
 {% if sessions %}<div class="card"><div class="card-header">Recorded workouts</div><ul class="list-group list-group-flush">{% for s in sessions %}<li class="list-group-item small"><strong>{{ s.performed_on|date:"M j, Y" }}</strong> – {% for e in s.entries.all %}{{ e.exercise.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>{% endfor %}</ul></div>{% endif %}
 {% endblock %}

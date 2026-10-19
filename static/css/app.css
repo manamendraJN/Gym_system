@@ -224,3 +224,6 @@ a.card:hover { border-color: var(--gym-accent); }
 .badge.text-bg-primary { background-color: var(--gym-accent) !important; color: #fff !important; }
 .badge.text-bg-secondary { background-color: #e4e7ea !important; color: #3d4752 !important; }
 .badge.text-bg-dark { background-color: var(--gym-ink) !important; color: #fff !important; }
+
+/* progress bars use the brand accent, not Bootstrap blue */
+.progress { --bs-progress-bg: #e3e7ea; --bs-progress-bar-bg: var(--gym-accent); --bs-progress-border-radius: var(--radius); height: .6rem; }

@@ -37,6 +37,23 @@ def duration(delta):
 
 
 @register.filter
+def clock(seconds):
+    """Seconds -> 'mm:ss' (e.g. 90 -> '01:30'); empty values read as 00:00."""
+    total = int(seconds or 0)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+@register.filter
+def duration_clock(delta):
+    """timedelta -> 'mm:ss', or 'h:mm:ss' from one hour; empty -> '–'."""
+    if delta is None:
+        return "–"
+    total = max(0, int(delta.total_seconds()))
+    h, rem = divmod(total, 3600)
+    return f"{h}:{rem // 60:02d}:{rem % 60:02d}" if h else f"{rem // 60:02d}:{rem % 60:02d}"
+
+
+@register.filter
 def payment_status(key):
     from apps.payments.billing import PAYMENT_STATUS_LABELS
 

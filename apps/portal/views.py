@@ -26,8 +26,9 @@ from apps.progress import forms as progress_forms
 from apps.progress import services as progress_services
 from apps.trainers.models import TrainerAssignment, Trainer
 from apps.workouts import forms as workout_forms
+from apps.workouts import runs as workout_runs
 from apps.workouts import services as workout_services
-from apps.workouts.models import PlanStatus, WorkoutPlan
+from apps.workouts.models import ExerciseStatus, PlanStatus, RunStatus, WorkoutPlan, WorkoutRun
 from apps.trainers.models import WEEKDAYS
 
 
@@ -109,7 +110,9 @@ class WorkoutDetailView(_MyPlanMixin, TemplateView):
     def get_context_data(self, **kwargs):
         items = list(self.plan.items.filter(is_active=True).select_related("exercise"))
         days = [{"num": n, "label": label, "items": [i for i in items if i.weekday == n]} for n, label in WEEKDAYS]
-        return super().get_context_data(plan=self.plan, days=[d for d in days if d["items"]],
+        active_run = WorkoutRun.objects.filter(member=self.member, status=RunStatus.ACTIVE).first()
+        return super().get_context_data(plan=self.plan, days=[d for d in days if d["items"]], active_run=active_run,
+                                        runs=self.plan.runs.filter(member=self.member).exclude(status=RunStatus.ACTIVE)[:5],
                                         sessions=self.plan.sessions.prefetch_related("entries__exercise")[:10], **kwargs)
 
 
@@ -138,6 +141,83 @@ class LogWorkoutView(_MyPlanMixin, FormView):
         workout_services.log_session(self.member, self.plan, form.cleaned_data["performed_on"], form.entries(), self.request.user, form.cleaned_data["notes"])
         messages.success(self.request, "Great work! Your workout was recorded.")
         return redirect("portal:workout", pk=self.plan.pk)
+
+
+# ------------------------------------------------------------------------------------ guided workout runs
+class _RunMixin(PortalMixin):
+    @cached_property
+    def run(self):
+        return get_object_or_404(WorkoutRun.objects.select_related("plan"), pk=self.kwargs["pk"], member=self.member)
+
+
+class RunStartView(_MyPlanMixin, View):
+    http_method_names = ["post"]
+
+    def post(self, request, pk):
+        try:
+            weekday = int(request.POST.get("weekday", ""))
+            run, created = workout_runs.start_run(self.member, self.plan, weekday)
+        except (ValueError, workout_runs.RunError) as exc:
+            messages.error(request, str(exc) if isinstance(exc, workout_runs.RunError) else "Choose a day.")
+            return redirect("portal:workout", pk=self.plan.pk)
+        if created:
+            messages.success(request, "Workout started. Start the first exercise when you are ready.")
+        return redirect(run)
+
+
+class RunView(_RunMixin, TemplateView):
+    template_name = "portal/run.html"
+
+    def get_context_data(self, **kwargs):
+        workout_runs.close_stale_runs(self.member)
+        run = WorkoutRun.objects.select_related("plan").get(pk=self.run.pk)
+        now = timezone.now()
+        return super().get_context_data(run=run, state=workout_runs.build_state(run, now), server_now_ms=int(now.timestamp() * 1000),
+                                        plan=run.plan, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        response["Cache-Control"] = "no-store"
+        return response
+
+
+class _RunAction(_RunMixin, View):
+    http_method_names = ["post"]
+
+    def act(self, request):
+        raise NotImplementedError
+
+    def post(self, request, pk, **kwargs):
+        try:
+            self.act(request, **kwargs)
+        except workout_runs.RunError as exc:
+            messages.error(request, str(exc))
+        return redirect(self.run)
+
+
+class RunExerciseStartView(_RunAction):
+    def act(self, request, exercise_pk):
+        workout_runs.start_exercise(self.run, exercise_pk)
+
+
+class RunFinishSetView(_RunAction):
+    def act(self, request, set_pk):
+        _, exercise_done, run_done = workout_runs.finish_set(self.run, set_pk)
+        if run_done:
+            messages.success(self.request, "Workout complete. Well done!")
+        elif exercise_done:
+            messages.success(self.request, "Exercise complete. Start the next one when you are ready.")
+
+
+class RunNextSetView(_RunAction):
+    def act(self, request, exercise_pk):
+        workout_runs.start_next_set(self.run, exercise_pk)
+
+
+class RunEndView(_RunAction):
+    def act(self, request):
+        workout_runs.end_run(self.run)
+        messages.info(self.request, "Workout ended. What you completed has been saved.")
 
 
 # ----------------------------------------------------------------------------------------- appointments

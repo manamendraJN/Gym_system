@@ -185,3 +185,105 @@ class SessionEntry(models.Model):
 
     class Meta:
         ordering = ["id"]
+
+
+# --------------------------------------------------------------------------------- live workout tracking
+class RunStatus(models.TextChoices):
+    ACTIVE = "active", "In progress"
+    COMPLETED = "completed", "Completed"
+    ABANDONED = "abandoned", "Ended early"
+
+
+class WorkoutRun(models.Model):
+    """A guided workout the member runs from the portal (start → exercises → sets with rest timers).
+    All timestamps are written by the server; the browser only displays countdowns. When a run ends, a normal
+    WorkoutSession (history entry) is created from what was actually done."""
+
+    member = models.ForeignKey("members.Member", on_delete=models.PROTECT, related_name="workout_runs")
+    plan = models.ForeignKey(WorkoutPlan, null=True, blank=True, on_delete=models.SET_NULL, related_name="runs")
+    weekday = models.PositiveSmallIntegerField(choices=WEEKDAYS)
+    status = models.CharField(max_length=10, choices=RunStatus.choices, default=RunStatus.ACTIVE, db_index=True)
+    started_at = models.DateTimeField(default=timezone.now)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    session = models.OneToOneField(WorkoutSession, null=True, blank=True, on_delete=models.SET_NULL, related_name="run")
+
+    class Meta:
+        ordering = ["-started_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(fields=["member"], condition=Q(status="active"), name="one_active_run_per_member"),
+            models.CheckConstraint(condition=Q(completed_at__isnull=True) | Q(completed_at__gte=F("started_at")), name="run_end_after_start"),
+        ]
+
+    def __str__(self):
+        return f"{self.member} – {self.plan} ({self.started_at:%Y-%m-%d %H:%M})"
+
+    @property
+    def duration(self):
+        return (self.completed_at or timezone.now()) - self.started_at
+
+    def get_absolute_url(self):
+        return reverse("portal:run", args=[self.pk])
+
+
+class ExerciseStatus(models.TextChoices):
+    PENDING = "pending", "Upcoming"
+    ACTIVE = "active", "In progress"
+    COMPLETED = "completed", "Completed"
+    SKIPPED = "skipped", "Not done"
+
+
+class ExerciseRun(models.Model):
+    """One exercise of a run. Targets are copied from the plan when the run starts so later plan edits don't change it."""
+
+    run = models.ForeignKey(WorkoutRun, on_delete=models.CASCADE, related_name="exercises")
+    plan_item = models.ForeignKey(PlanExercise, null=True, blank=True, on_delete=models.SET_NULL, related_name="runs")
+    exercise = models.ForeignKey(Exercise, on_delete=models.PROTECT, related_name="runs")
+    position = models.PositiveSmallIntegerField()
+    target_sets = models.PositiveSmallIntegerField()
+    target_reps = models.PositiveSmallIntegerField(null=True, blank=True)
+    target_duration_minutes = models.PositiveSmallIntegerField(null=True, blank=True)
+    target_weight_kg = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    rest_seconds = models.PositiveSmallIntegerField(default=0)
+    status = models.CharField(max_length=10, choices=ExerciseStatus.choices, default=ExerciseStatus.PENDING)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["position", "id"]
+        constraints = [
+            models.UniqueConstraint(fields=["run", "position"], name="unique_exercise_position_in_run"),
+            models.UniqueConstraint(fields=["run"], condition=Q(status="active"), name="one_active_exercise_per_run"),
+        ]
+
+    @property
+    def duration(self):
+        if not self.started_at:
+            return None
+        return (self.completed_at or timezone.now()) - self.started_at
+
+    @property
+    def sets_done(self):
+        return sum(1 for s in self.sets.all() if s.completed_at)
+
+
+class SetRun(models.Model):
+    """One set. `rest_*` describe the rest that followed the previous set: configured length and when it actually ended
+    (= when this set was started)."""
+
+    exercise_run = models.ForeignKey(ExerciseRun, on_delete=models.CASCADE, related_name="sets")
+    number = models.PositiveSmallIntegerField()
+    started_at = models.DateTimeField()
+    completed_at = models.DateTimeField(null=True, blank=True)
+    rest_before_seconds = models.PositiveSmallIntegerField(default=0, help_text="Configured rest that preceded this set.")
+    rest_before_actual = models.DurationField(null=True, blank=True, help_text="How long the member actually rested before this set.")
+
+    class Meta:
+        ordering = ["number"]
+        constraints = [
+            models.UniqueConstraint(fields=["exercise_run", "number"], name="unique_set_number"),
+            models.CheckConstraint(condition=Q(completed_at__isnull=True) | Q(completed_at__gte=F("started_at")), name="set_end_after_start"),
+        ]
+
+    @property
+    def elapsed(self):
+        return (self.completed_at or timezone.now()) - self.started_at

@@ -149,6 +149,7 @@ class PlanDetailView(_PlanMixin, DetailView):
             days=[d for d in days if d["items"]], archived=[i for i in items if not i.is_active],
             changes=self.plan.changes.select_related("user")[:15],
             sessions=self.plan.sessions.prefetch_related("entries__exercise")[:10],
+            runs=self.plan.runs.select_related("member").prefetch_related("exercises__sets")[:10],
             can_manage=self.request.user.has_gym_perm("workouts.manage"), plan_statuses=PlanStatus.choices,
         )
         return ctx
@@ -200,7 +201,8 @@ class ItemCreateView(_PlanMixin, FormView):
     def form_valid(self, form):
         item = form.save(commit=False)
         item.plan = self.plan
-        item.position = self.plan.items.filter(weekday=item.weekday).count()
+        if not form.cleaned_data.get("position"):
+            item.position = self.plan.items.filter(weekday=item.weekday).count() + 1
         item.save()
         services.note_change(self.plan, self.request.user, f"Added “{item.exercise.name}” on {item.get_weekday_display()}")
         messages.success(self.request, "Exercise added.")
