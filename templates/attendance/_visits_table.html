@@ -1,0 +1,20 @@
+{% load gym %}{# expects: visits (iterable), show_member (bool) #}
+<div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr>
+    {% if show_member %}{% if columns %}{% include "components/sort_th.html" with col=columns.member %}{% else %}<th>Member</th>{% endif %}{% endif %}
+    {% if columns %}{% include "components/sort_th.html" with col=columns.time %}{% else %}<th>Check-in</th>{% endif %}
+    <th>Check-out</th><th>Duration</th><th>Plan</th><th>Method</th></tr></thead>
+  <tbody>
+  {% for v in visits %}
+    <tr>
+      {% if show_member %}<td><a href="{% url 'attendance:member_history' v.member_id %}" class="fw-semibold">{{ v.member.full_name }}</a><div><small class="text-muted">{{ v.member.member_id }}</small></div></td>{% endif %}
+      <td class="text-nowrap">{{ v.check_in|date:"M j, Y H:i" }}</td>
+      <td class="text-nowrap">{% if v.check_out %}{{ v.check_out|date:"H:i" }}{% if v.auto_closed %} <span class="badge text-bg-secondary" title="No check-out was recorded">auto</span>{% endif %}{% else %}<span class="badge text-bg-primary">In gym</span>{% endif %}</td>
+      <td class="text-nowrap">{% if v.check_out %}{{ v.duration|duration }}{% else %}—{% endif %}</td>
+      <td>{{ v.membership.plan.name|default:"—" }}</td>
+      <td>{{ v.get_method_display }}</td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="6">{% include "components/empty_state.html" with icon="calendar-x" title="No visits found" text="Try a different date range or search." %}</td></tr>
+  {% endfor %}
+  </tbody></table></div>

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Check-in desk{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Check-in desk</h1>
+  <div class="d-flex gap-2">
+    {% if request.user|can:"attendance.manage" %}<a href="{% url 'attendance:scan' %}" class="btn btn-primary"><i class="bi bi-qr-code-scan me-1"></i>Scan QR code</a>{% endif %}
+    <a href="{% url 'attendance:history' %}" class="btn btn-outline-secondary">History</a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card mb-4"><div class="card-header">Find a member</div><div class="card-body">
+      <form method="get" data-no-loading>
+        <div class="input-group">
+          <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+          <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Member ID, name or phone number" aria-label="Search members" autofocus>
+          <button class="btn btn-dark" type="submit" data-no-loading>Search</button>
+        </div>
+      </form>
+      {% if q %}
+      <div class="list-group list-group-flush mt-3">
+        {% for m in results %}
+        <div class="list-group-item px-0 d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div class="d-flex align-items-center gap-2">
+            {% if m.photo %}<img src="{{ m.photo.url }}" alt="" class="avatar-img">{% else %}<span class="avatar">{{ m.initials }}</span>{% endif %}
+            <div class="lh-sm"><a href="{{ m.get_absolute_url }}" class="fw-semibold text-reset text-decoration-none">{{ m.full_name }}</a>
+              <div><small class="text-muted">{{ m.member_id }} · {{ m.phone }}</small></div></div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            {% include "components/status_badge.html" with key=m.membership_status label=m.membership_status|member_status %}
+            {% if m.inside %}<span class="badge text-bg-primary">In gym</span>{% endif %}
+            {% if request.user|can:"attendance.manage" and not m.inside %}
+            <form method="post" action="{% url 'attendance:check_in' m.pk %}" data-no-loading>{% csrf_token %}<input type="hidden" name="next_url" value="{{ request.get_full_path }}">
+              <button class="btn btn-sm btn-primary" type="submit" data-no-loading><i class="bi bi-box-arrow-in-right me-1"></i>Check in</button></form>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+          {% include "components/empty_state.html" with icon="person-x" title="No member found" text="Check the ID, name or phone number." %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="row g-3 mb-4">
+      <div class="col-6">{% include "components/stat_card.html" with label="Check-ins today" value=today_count icon="calendar-check" tone="orange" %}</div>
+      <div class="col-6">{% include "components/stat_card.html" with label="Members today" value=today_members icon="people" tone="blue" %}</div>
+    </div>
+    <div class="card"><div class="card-header">Currently in the gym <span class="badge text-bg-dark ms-1">{{ inside|length }}</span></div>
+      {% if inside %}
+      <ul class="list-group list-group-flush">
+        {% for v in inside %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <div class="lh-sm"><a href="{{ v.member.get_absolute_url }}" class="fw-semibold text-reset text-decoration-none">{{ v.member.full_name }}</a>
+            <div><small class="text-muted">since {{ v.check_in|time:"H:i" }} · {{ v.get_method_display }}</small></div></div>
+          {% if request.user|can:"attendance.manage" %}
+          <form method="post" action="{% url 'attendance:check_out' v.pk %}" data-no-loading>{% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary" type="submit" data-no-loading><i class="bi bi-box-arrow-right me-1"></i>Check out</button></form>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="door-open" title="Nobody is checked in" %}</div>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

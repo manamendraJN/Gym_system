@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Check-in QR – {{ member.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header no-print"><h1>Check-in QR code</h1><a href="{{ member.get_absolute_url }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Member profile</a></div>
+<div class="card mx-auto" style="max-width:360px"><div class="card-body text-center">
+  <div class="fw-bold fs-5">{{ GYM_NAME }}</div>
+  <img src="{% url 'attendance:qr_image' member.pk %}" alt="Check-in QR code" width="260" height="260" class="my-2">
+  <div class="fw-semibold">{{ member.full_name }}</div>
+  <div class="text-muted">{{ member.member_id }}</div>
+  <p class="small text-muted mt-2 mb-0">Scan at the front desk. The code contains only a private token, no personal details.</p>
+</div></div>
+<div class="text-center mt-3 no-print d-flex justify-content-center gap-2">
+  <button class="btn btn-primary" type="button" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print card</button>
+  <form method="post" action="{% url 'attendance:qr_regenerate' member.pk %}" data-no-loading data-confirm="Generate a new QR code? The current printed/saved code will stop working.">
+    {% csrf_token %}<button class="btn btn-outline-danger" type="submit" data-no-loading><i class="bi bi-arrow-repeat me-1"></i>Reset code</button></form>
+</div>
+{% endblock %}

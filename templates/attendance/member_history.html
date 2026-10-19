@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Attendance – {{ member.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Attendance: {{ member.full_name }}</h1><div class="text-muted">{{ member.member_id }}</div></div>
+  <a href="{{ member.get_absolute_url }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Member profile</a>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">{% include "components/stat_card.html" with label="Visits" value=visit_count icon="calendar-check" tone="orange" sub="in the selected range" %}</div>
+  <div class="col-6 col-md-3">{% include "components/stat_card.html" with label="Days attended" value=days_count icon="calendar3" tone="blue" %}</div>
+</div>
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-6 col-md-3"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+      <div class="col-6 col-md-3"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+      <div class="col-md-3"><select name="method" class="form-select" aria-label="Method"><option value="">Any method</option>
+        <option value="manual" {% if method == "manual" %}selected{% endif %}>Front desk</option><option value="qr" {% if method == "qr" %}selected{% endif %}>QR code</option></select></div>
+      <div class="col-md-3 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if filtered_on %}<a href="{% url 'attendance:member_history' member.pk %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+    </form>
+  </div>
+  {% include "attendance/_visits_table.html" with visits=object_list show_member=False columns=columns %}
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

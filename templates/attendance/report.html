@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Daily attendance report{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>Daily attendance report</h1><div class="text-muted">{{ day|date:"l, F j, Y" }}</div></div>
+  <form method="get" class="d-flex gap-2" data-no-loading>
+    <a class="btn btn-outline-secondary" href="?date={{ prev_day|date:'Y-m-d' }}" title="Previous day"><i class="bi bi-chevron-left"></i></a>
+    <input type="date" name="date" value="{{ day|date:'Y-m-d' }}" class="form-control" aria-label="Date">
+    <button class="btn btn-dark" type="submit" data-no-loading>Go</button>
+    {% if not is_today %}<a class="btn btn-outline-secondary" href="?date={{ next_day|date:'Y-m-d' }}" title="Next day"><i class="bi bi-chevron-right"></i></a>{% endif %}
+  </form>
+</div>
+<div class="row g-3 mb-4">
+  <div class="col-6 col-xl-3">{% include "components/stat_card.html" with label="Check-ins" value=total icon="calendar-check" tone="orange" %}</div>
+  <div class="col-6 col-xl-3">{% include "components/stat_card.html" with label="Unique members" value=unique icon="people" tone="blue" %}</div>
+  <div class="col-6 col-xl-3">{% include "components/stat_card.html" with label="Via QR code" value=qr_count icon="qr-code" tone="purple" %}</div>
+  <div class="col-6 col-xl-3">{% include "components/stat_card.html" with label="Average visit" value=average icon="stopwatch" tone="green" sub="completed visits" %}</div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-4"><div class="card"><div class="card-header">Check-ins by hour</div><div class="card-body">
+    {% for h in hourly %}
+      <div class="d-flex align-items-center gap-2 mb-1"><small class="text-muted" style="width:44px">{{ h.hour }}</small>
+        <div class="flex-grow-1 bg-light rounded" style="height:14px"><div class="rounded" style="height:14px;width:{{ h.pct }}%;background:var(--gym-accent)"></div></div>
+        <small style="width:24px" class="text-end">{{ h.n }}</small></div>
+    {% endfor %}
+  </div></div></div>
+  <div class="col-lg-8"><div class="card"><div class="card-header">Visits {% if still_inside %}<span class="badge text-bg-primary ms-1">{{ still_inside }} still inside</span>{% endif %}</div>
+    {% include "attendance/_visits_table.html" with visits=visits show_member=True %}</div></div>
+</div>
+{% endblock %}

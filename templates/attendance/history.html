@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Attendance history{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Attendance history</h1><a href="{% url 'attendance:report' %}" class="btn btn-outline-secondary"><i class="bi bi-bar-chart me-1"></i>Daily report</a></div>
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Member ID, name or phone" %}</div>
+      <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+      <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+      <div class="col-6 col-lg-2"><select name="method" class="form-select" aria-label="Method"><option value="">Any method</option>
+        <option value="manual" {% if method == "manual" %}selected{% endif %}>Front desk</option><option value="qr" {% if method == "qr" %}selected{% endif %}>QR code</option></select></div>
+      <div class="col-6 col-lg-2 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if filtered_on %}<a href="{% url 'attendance:history' %}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+    </form>
+  </div>
+  {% include "attendance/_visits_table.html" with visits=object_list show_member=True %}
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}
