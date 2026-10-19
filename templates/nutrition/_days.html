@@ -1,0 +1,6 @@
+{% for d in days %}<div class="card mb-3"><div class="card-header">{{ d.label }}</div><ul class="list-group list-group-flush">
+  {% for m in d.meals %}<li class="list-group-item d-flex justify-content-between gap-3"><div><span class="badge text-bg-light border me-1">{{ m.get_meal_type_display }}</span><strong>{{ m.title }}</strong>
+    {% if m.description %}<div class="small text-muted">{{ m.description }}</div>{% endif %}
+    {% if m.ingredient_list %}<div class="small mt-1"><em>Ingredients:</em> {{ m.ingredient_list|join:", " }}</div>{% endif %}</div>
+    {% if can_manage %}<form method="post" action="{% url 'nutrition:item_delete' m.pk %}" data-no-loading data-confirm="Remove this meal?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-no-loading><i class="bi bi-trash"></i></button></form>{% endif %}</li>{% endfor %}
+</ul></div>{% empty %}<div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="egg-fried" title="No meals yet" %}</div></div>{% endfor %}

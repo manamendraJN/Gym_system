@@ -1,0 +1,4 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{% url 'nutrition:plan_list' %}{% endblock %}
+{% block cancel_url %}{% url 'nutrition:plan_list' %}{% endblock %}
+{% block before_form %}{% include "nutrition/_disclaimer.html" %}{% endblock %}

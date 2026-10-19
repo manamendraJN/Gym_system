@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Meal plans{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Meal plans</h1>{% if request.user|can:"nutrition.manage" %}<a href="{% url 'nutrition:plan_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New meal plan</a>{% endif %}</div>
+{% include "nutrition/_disclaimer.html" %}
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading><div class="col-md-8">{% include "components/search_bar.html" with q=q placeholder="Plan or member" %}</div><div class="col-md-4"><button class="btn btn-dark w-100" type="submit" data-no-loading>Search</button></div></form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Plan</th><th>Member</th><th>Period</th><th>Status</th></tr></thead><tbody>
+{% for p in object_list %}<tr><td><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.name }}</a></td><td>{{ p.member.full_name }} <small class="text-muted">{{ p.member.member_id }}</small></td>
+  <td>{{ p.start_date|date:"M j, Y" }}{% if p.end_date %} – {{ p.end_date|date:"M j, Y" }}{% endif %}</td><td>{% if p.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="4">{% include "components/empty_state.html" with icon="egg-fried" title="No meal plans" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

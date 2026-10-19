@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ plan.name }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ plan.name }}</h1><div class="text-muted">for {{ plan.member.full_name }} · {{ plan.start_date|date:"M j, Y" }}{% if plan.end_date %} – {{ plan.end_date|date:"M j, Y" }}{% endif %}</div></div>
+  <div class="d-flex gap-2"><a href="{% url 'nutrition:plan_list' %}" class="btn btn-outline-secondary">Back</a><a href="{% url 'nutrition:profile' plan.member.pk %}" class="btn btn-outline-secondary">Preferences &amp; allergies</a>
+  {% if can_manage %}<a href="{% url 'nutrition:item_add' plan.pk %}" class="btn btn-primary">Add meal</a><a href="{% url 'nutrition:plan_edit' plan.pk %}" class="btn btn-outline-secondary">Edit</a>{% endif %}</div></div>
+{% include "nutrition/_disclaimer.html" %}
+{% if plan.goal %}<p><strong>Goal:</strong> {{ plan.goal }}</p>{% endif %}{% if plan.notes %}<p class="text-muted">{{ plan.notes|linebreaksbr }}</p>{% endif %}
+{% if profile and profile.allergies %}<div class="alert alert-warning"><strong>Allergies / foods to avoid:</strong> {{ profile.allergies|linebreaksbr }}</div>{% endif %}
+{% include "nutrition/_days.html" %}
+{% endblock %}

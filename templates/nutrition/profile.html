@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Nutrition profile{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Nutrition profile</h1><div class="text-muted">{{ member.full_name }} ({{ member.member_id }})</div></div><a href="{% url 'nutrition:plan_list' %}" class="btn btn-outline-secondary">Meal plans</a></div>
+{% include "nutrition/_disclaimer.html" %}
+<div class="card" style="max-width:740px"><div class="card-body">
+{% if can_edit %}<form method="post" novalidate>{% csrf_token %}{% include "components/form_errors.html" %}
+  {% for field in form.visible_fields %}{% include "components/form_field.html" with field=field %}{% endfor %}<button class="btn btn-primary" type="submit">Save</button></form>
+{% else %}<dl class="detail-list mb-0"><dt>Food preferences</dt><dd>{{ form.instance.food_preferences|default:"—"|linebreaksbr }}</dd><dt>Allergies</dt><dd>{{ form.instance.allergies|default:"—"|linebreaksbr }}</dd><dt>Goals</dt><dd>{{ form.instance.nutrition_goals|default:"—"|linebreaksbr }}</dd></dl>{% endif %}
+</div></div>
+{% endblock %}
