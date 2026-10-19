@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1>
+  <a href="{% if membership %}{{ membership.get_absolute_url }}{% else %}{{ member.get_absolute_url }}{% endif %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="card" style="max-width:620px"><div class="card-body">
+  <p class="mb-3"><strong>{{ member.full_name }}</strong> <span class="text-muted">({{ member.member_id }})</span>
+    {% if membership %}<br><span class="text-muted">{{ membership.plan.name }} · {{ membership.start_date|date:"M j, Y" }} – {{ membership.end_date|date:"M j, Y" }}</span>{% endif %}</p>
+  {% if intro %}<div class="alert alert-{% if danger %}warning{% else %}info{% endif %} small"><i class="bi bi-info-circle me-1"></i>{{ intro }}</div>{% endif %}
+  <form method="post" novalidate {% if danger %}data-confirm="Are you sure you want to continue?"{% endif %}>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% for field in form %}{% include "components/form_field.html" with field=field %}{% endfor %}
+    <button class="btn {% if danger %}btn-danger{% else %}btn-primary{% endif %}" type="submit">{{ submit_label }}</button>
+    <a class="btn btn-link" href="{% if membership %}{{ membership.get_absolute_url }}{% else %}{{ member.get_absolute_url }}{% endif %}">Go back</a>
+  </form>
+</div></div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Memberships{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Memberships</h1>
+  <div class="d-flex gap-2"><a href="{% url 'memberships:expiring' %}" class="btn btn-outline-secondary"><i class="bi bi-hourglass-split me-1"></i>Expiring soon</a>
+  <a href="{% url 'memberships:expired' %}" class="btn btn-outline-secondary"><i class="bi bi-calendar-x me-1"></i>Expired</a></div></div>
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Member name, ID or phone" %}</div>
+      <div class="col-6 col-lg-3"><select name="status" class="form-select" aria-label="Status"><option value="">Any status</option>
+        {% for key, label in statuses %}<option value="{{ key }}" {% if key == status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      <div class="col-6 col-lg-3"><select name="plan" class="form-select" aria-label="Plan"><option value="">Any plan</option>
+        {% for p in plans %}<option value="{{ p.pk }}" {% if p.pk|stringformat:"s" == plan %}selected{% endif %}>{{ p.name }}</option>{% endfor %}</select></div>
+      <div class="col-lg-2 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if q or status or plan %}<a href="{% url 'memberships:list' %}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+    </form>
+  </div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr>
+      {% include "components/sort_th.html" with col=columns.member %}
+      {% include "components/sort_th.html" with col=columns.plan %}
+      {% include "components/sort_th.html" with col=columns.start %}
+      {% include "components/sort_th.html" with col=columns.end %}
+      {% include "components/sort_th.html" with col=columns.price %}
+      <th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for m in object_list %}
+      <tr>
+        <td><a href="{{ m.member.get_absolute_url }}" class="fw-semibold">{{ m.member.full_name }}</a><div><small class="text-muted">{{ m.member.member_id }}</small></div></td>
+        <td>{{ m.plan.name }}<div><small class="text-muted">{{ m.get_kind_display }}</small></div></td>
+        <td class="text-nowrap">{{ m.start_date|date:"M j, Y" }}</td><td class="text-nowrap">{{ m.end_date|date:"M j, Y" }}</td>
+        <td class="text-nowrap">{{ m.price|lkr }}</td>
+        <td>{% include "components/status_badge.html" with key=m.status_key label=m.status_label %}</td>
+        <td class="text-end"><a href="{{ m.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="Details"><i class="bi bi-eye"></i></a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7">{% include "components/empty_state.html" with icon="card-checklist" title="No memberships found" text="Assign a plan from a member's profile." %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

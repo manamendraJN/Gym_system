@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Membership plans{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Membership plans</h1>
+  {% if request.user|can:"plans.manage" and request.user|can:"plans.price" %}<a href="{% url 'memberships:plan_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New plan</a>{% endif %}
+</div>
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-md-6">{% include "components/search_bar.html" with q=q placeholder="Search plans" %}</div>
+      <div class="col-6 col-md-3"><select name="status" class="form-select" aria-label="Status">
+        <option value="">Any status</option>
+        <option value="active" {% if status == "active" %}selected{% endif %}>Active</option>
+        <option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option></select></div>
+      <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if q or status %}<a href="{% url 'memberships:plan_list' %}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+    </form>
+  </div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>Plan</th><th>Duration</th><th>Price</th><th>Current members</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+    {% for p in object_list %}
+      <tr>
+        <td><a href="{{ p.get_absolute_url }}" class="fw-semibold">{{ p.name }}</a>{% if p.has_access_rules %}<div><small class="text-muted"><i class="bi bi-lock me-1"></i>{{ p.access_summary }}</small></div>{% endif %}</td>
+        <td>{{ p.duration_label }}</td>
+        <td class="text-nowrap fw-semibold">{{ p.price|lkr }}</td>
+        <td>{{ p.live_count }}</td>
+        <td>{% if p.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</td>
+        <td class="text-end text-nowrap">
+          <a href="{{ p.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+          {% if request.user|can:"plans.manage" %}
+          <a href="{% url 'memberships:plan_edit' p.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+          <form method="post" action="{% url 'memberships:plan_toggle_active' p.pk %}" class="d-inline" data-no-loading
+                data-confirm="{% if p.is_active %}Deactivate “{{ p.name }}”? It can no longer be assigned; existing memberships are not affected.{% else %}Activate “{{ p.name }}”?{% endif %}">
+            {% csrf_token %}<button type="submit" data-no-loading class="btn btn-sm {% if p.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" title="{% if p.is_active %}Deactivate{% else %}Activate{% endif %}"><i class="bi bi-{% if p.is_active %}toggle-on{% else %}toggle-off{% endif %}"></i></button>
+          </form>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">{% include "components/empty_state.html" with icon="tags" title="No plans found" text="Create a plan to start selling memberships." %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ object.name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ object.name }}</h1>
+    <div class="mt-1">{% if object.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</div></div>
+  <div class="d-flex gap-2">
+    <a href="{% url 'memberships:plan_list' %}" class="btn btn-outline-secondary">Back</a>
+    {% if request.user|can:"plans.manage" %}<a href="{% url 'memberships:plan_edit' object.pk %}" class="btn btn-primary"><i class="bi bi-pencil me-1"></i>Edit</a>{% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-8"><div class="card"><div class="card-body">
+    <p class="mb-4">{{ object.description|default:"No description."|linebreaksbr }}</p>
+    <div class="row">
+      <div class="col-sm-4"><dl class="detail-list"><dt>Price</dt><dd class="fs-5 fw-semibold">{{ object.price|lkr }}</dd></dl></div>
+      <div class="col-sm-4"><dl class="detail-list"><dt>Duration</dt><dd class="fs-5 fw-semibold">{{ object.duration_label }}</dd></dl></div>
+      <div class="col-sm-4"><dl class="detail-list"><dt>Current members</dt><dd class="fs-5 fw-semibold">{{ live_count }} <small class="text-muted fw-normal">of {{ total_count }} ever</small></dd></dl></div>
+    </div>
+    <h6>Benefits</h6>
+    {% if object.benefit_list %}<ul class="benefit-list mb-4">{% for b in object.benefit_list %}<li>{{ b }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">None listed.</p>{% endif %}
+    <h6>Access restrictions</h6>
+    <p class="mb-1"><strong>{{ object.access_summary }}</strong></p>
+    {% if object.access_restrictions %}<p class="mb-0 text-muted">{{ object.access_restrictions|linebreaksbr }}</p>{% endif %}
+  </div></div></div>
+  <div class="col-lg-4"><div class="card"><div class="card-header">Manage</div><div class="card-body">
+    {% if request.user|can:"plans.manage" %}
+    <form method="post" action="{% url 'memberships:plan_toggle_active' object.pk %}" data-no-loading
+          data-confirm="{% if object.is_active %}Deactivate this plan? It can no longer be assigned; existing memberships are not affected.{% else %}Activate this plan?{% endif %}">
+      {% csrf_token %}<button type="submit" data-no-loading class="btn w-100 {% if object.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">{% if object.is_active %}Deactivate plan{% else %}Activate plan{% endif %}</button>
+    </form>
+    {% endif %}
+    <p class="text-muted small mt-3 mb-0">Plan price changes apply to new memberships only. Existing memberships keep the price they were bought at.</p>
+  </div></div></div>
+</div>
+{% endblock %}

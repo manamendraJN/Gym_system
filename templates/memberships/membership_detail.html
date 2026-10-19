@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Membership – {{ object.member.full_name }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div><h1>{{ object.plan.name }}</h1>
+    <div class="text-muted">for <a href="{{ object.member.get_absolute_url }}">{{ object.member.full_name }}</a> ({{ object.member.member_id }})</div>
+    <div class="mt-1">{% include "components/status_badge.html" with key=object.status_key label=object.status_label %}</div></div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if request.user|can:"memberships.manage" %}
+      {% if can_renew %}<a href="{% url 'memberships:renew' object.pk %}" class="btn btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Renew</a>{% endif %}
+      {% if can_change %}<a href="{% url 'memberships:change' object.pk %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left-right me-1"></i>Upgrade / downgrade</a>{% endif %}
+      {% if can_suspend %}<a href="{% url 'memberships:suspend' object.pk %}" class="btn btn-outline-warning"><i class="bi bi-pause-circle me-1"></i>Suspend</a>{% endif %}
+      {% if can_reactivate %}
+      <form method="post" action="{% url 'memberships:reactivate' object.pk %}" data-no-loading data-confirm="Reactivate this membership? Suspended days will be added to the end date.">
+        {% csrf_token %}<button class="btn btn-success" type="submit" data-no-loading><i class="bi bi-play-circle me-1"></i>Reactivate</button></form>
+      {% endif %}
+    {% endif %}
+    {% if request.user|can:"memberships.cancel" and can_cancel %}<a href="{% url 'memberships:cancel' object.pk %}" class="btn btn-outline-danger"><i class="bi bi-x-circle me-1"></i>Cancel</a>{% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  {% if billing %}
+  <div class="col-12"><div class="card"><div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">Billing
+    <span class="d-flex gap-2">
+      {% if request.user|can:"payments.manage" and billing.status != "cancelled" and billing.outstanding > billing.pending_total %}<a href="{% url 'payments:record' object.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-cash me-1"></i>Record payment</a>{% endif %}
+      {% if request.user|can:"payments.adjust" and billing.status != "cancelled" %}<a href="{% url 'payments:adjust' object.pk %}" class="btn btn-sm btn-outline-secondary">Adjust amount</a>{% endif %}
+    </span></div>
+    <div class="card-body"><div class="row g-4">
+      <div class="col-lg-4">{% include "payments/_balance.html" with b=billing %}</div>
+      <div class="col-lg-8">
+        {% if payments %}<div class="table-responsive"><table class="table table-sm mb-0">
+          <thead><tr><th>Receipt</th><th>Date</th><th>Type</th><th>Method</th><th class="text-end">Amount</th><th>Status</th></tr></thead><tbody>
+          {% for p in payments %}<tr><td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td><td class="text-nowrap">{{ p.paid_on|date:"M j, Y" }}</td>
+            <td>{{ p.get_kind_display }}</td><td>{{ p.get_method_display }}</td>
+            <td class="text-end text-nowrap {% if p.kind == 'refund' %}text-danger{% endif %}">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|lkr }}</td>
+            <td>{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</td></tr>{% endfor %}</tbody></table></div>
+        {% else %}{% include "components/empty_state.html" with icon="cash-coin" title="No payments yet" text="Record the first payment for this membership." %}{% endif %}
+      </div></div></div></div></div>
+  {% endif %}
+  <div class="col-lg-5"><div class="card"><div class="card-header">Details</div><div class="card-body">
+    <dl class="detail-list mb-0">
+      <dt>Period</dt><dd>{{ object.start_date|date:"M j, Y" }} – {{ object.end_date|date:"M j, Y" }}{% if object.status_key == "active" %} <span class="text-muted">({{ object.days_remaining }} days left)</span>{% endif %}</dd>
+      <dt>Type</dt><dd>{{ object.get_kind_display }}{% if object.previous %} · from <a href="{{ object.previous.get_absolute_url }}">previous period</a>{% endif %}</dd>
+      <dt>Price paid for this period</dt><dd>{{ object.price|lkr }}</dd>
+      <dt>Plan</dt><dd><a href="{{ object.plan.get_absolute_url }}">{{ object.plan.name }}</a> · {{ object.plan.duration_label }}</dd>
+      {% if object.suspended_days %}<dt>Days credited after suspensions</dt><dd>{{ object.suspended_days }}</dd>{% endif %}
+      {% if object.status == "suspended" %}<dt>Suspended since</dt><dd>{{ object.suspended_on|date:"M j, Y" }} – {{ object.suspension_reason }}</dd>{% endif %}
+      {% if object.status == "cancelled" %}<dt>Cancelled</dt><dd>{{ object.ended_on|date:"M j, Y" }} – {{ object.cancellation_reason }}</dd>{% endif %}
+      {% if object.status == "superseded" %}<dt>Replaced on</dt><dd>{{ object.ended_on|date:"M j, Y" }}{% if followed_by %} by <a href="{{ followed_by.get_absolute_url }}">{{ followed_by.plan.name }}</a>{% endif %}</dd>{% endif %}
+      {% if object.notes %}<dt>Notes</dt><dd>{{ object.notes }}</dd>{% endif %}
+      <dt>Recorded</dt><dd>{{ object.created_at|date:"M j, Y H:i" }}{% if object.created_by %} by {{ object.created_by.display_name }}{% endif %}</dd>
+    </dl>
+  </div></div></div>
+  <div class="col-lg-7"><div class="card"><div class="card-header">Membership history for {{ object.member.full_name }}</div>
+    <div class="table-responsive"><table class="table mb-0">
+      <thead><tr><th>Plan</th><th>Period</th><th>Type</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody>{% for h in history %}
+        <tr {% if h.pk == object.pk %}class="table-active"{% endif %}><td><a href="{{ h.get_absolute_url }}">{{ h.plan.name }}</a></td>
+          <td class="text-nowrap">{{ h.start_date|date:"M j, Y" }} – {{ h.end_date|date:"M j, Y" }}</td>
+          <td>{{ h.get_kind_display }}</td><td class="text-nowrap">{{ h.price|lkr }}</td>
+          <td>{% include "components/status_badge.html" with key=h.status_key label=h.status_label %}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </div></div>
+</div>
+{% endblock %}

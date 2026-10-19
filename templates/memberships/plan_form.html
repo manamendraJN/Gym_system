@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1><a href="{% url 'memberships:plan_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="card" style="max-width:760px"><div class="card-body">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% include "components/form_field.html" with field=form.name %}
+    {% include "components/form_field.html" with field=form.description %}
+    <div class="row">
+      <div class="col-md-4">{% include "components/form_field.html" with field=form.duration_type %}</div>
+      <div class="col-md-4" id="customDaysWrap">{% include "components/form_field.html" with field=form.custom_days %}</div>
+      <div class="col-md-4">{% include "components/form_field.html" with field=form.price %}</div>
+    </div>
+    {% include "components/form_field.html" with field=form.benefits %}
+    <fieldset class="border rounded p-3 mb-3">
+      <legend class="fs-6 fw-semibold float-none w-auto px-2">Access rules <small class="text-muted fw-normal">(enforced at check-in)</small></legend>
+      <label class="form-label">{{ form.allowed_weekdays.label }}</label>
+      <div class="d-flex flex-wrap gap-3 mb-1">{% for cb in form.allowed_weekdays %}<div class="form-check">{{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}</div>
+      <div class="form-text mb-3">{{ form.allowed_weekdays.help_text }}</div>
+      {% for e in form.allowed_weekdays.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      <div class="row">
+        <div class="col-md-6">{% include "components/form_field.html" with field=form.access_from %}</div>
+        <div class="col-md-6">{% include "components/form_field.html" with field=form.access_until %}</div>
+      </div>
+      {% include "components/form_field.html" with field=form.access_restrictions %}
+    </fieldset>
+    {% include "components/form_field.html" with field=form.is_active %}
+    <button class="btn btn-primary" type="submit">Save plan</button>
+    <a class="btn btn-link" href="{% url 'memberships:plan_list' %}">Cancel</a>
+  </form>
+</div></div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var type = document.getElementById("id_duration_type"), wrap = document.getElementById("customDaysWrap");
+  function sync() { wrap.hidden = type.value !== "custom"; }
+  type.addEventListener("change", sync); sync();
+})();
+</script>
+{% endblock %}

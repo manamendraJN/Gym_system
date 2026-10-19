@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Expired memberships{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Expired memberships</h1><a href="{% url 'memberships:list' %}" class="btn btn-outline-secondary">All memberships</a></div>
+<p class="text-muted">Members whose latest membership has ended and who have not renewed.</p>
+<div class="card">
+  <div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+    <div class="col-md-8">{% include "components/search_bar.html" with q=q placeholder="Member name, ID or phone" %}</div>
+    <div class="col-md-4 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Search</button>{% if q %}<a href="{% url 'memberships:expired' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  </form></div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>Member</th><th>Plan</th><th>Expired on</th><th>Contact</th><th class="text-end">Actions</th></tr></thead>
+    <tbody>
+    {% for m in object_list %}
+      <tr>
+        <td><a href="{{ m.member.get_absolute_url }}" class="fw-semibold">{{ m.member.full_name }}</a><div><small class="text-muted">{{ m.member.member_id }}{% if not m.member.is_active %} · inactive{% endif %}</small></div></td>
+        <td>{{ m.plan.name }}</td>
+        <td class="text-nowrap">{{ m.end_date|date:"M j, Y" }} <small class="text-danger">({{ m.end_date|timesince }} ago)</small></td>
+        <td>{{ m.member.phone }}</td>
+        <td class="text-end text-nowrap">
+          <a href="{{ m.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="Details"><i class="bi bi-eye"></i></a>
+          {% if request.user|can:"memberships.manage" and m.member.is_active %}<a href="{% url 'memberships:renew' m.pk %}" class="btn btn-sm btn-primary"><i class="bi bi-arrow-repeat me-1"></i>Renew</a>{% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">{% include "components/empty_state.html" with icon="check2-circle" title="No expired memberships" text="Everyone with a membership is up to date." %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}
