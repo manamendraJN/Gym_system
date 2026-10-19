@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Notification settings{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Notification settings</h1><a href="{% url 'core:notifications' %}" class="btn btn-outline-secondary">Notification centre</a></div>
+<div class="row g-4"><div class="col-lg-7"><div class="card"><div class="card-body"><form method="post" novalidate>{% csrf_token %}{% include "components/form_errors.html" %}
+  {% for field in form.visible_fields %}{% include "components/form_field.html" with field=field %}{% endfor %}<button class="btn btn-primary" type="submit">Save settings</button></form></div></div></div>
+<div class="col-lg-5"><div class="card mb-4"><div class="card-header">External channels</div><ul class="list-group list-group-flush">
+  {% for c in channels %}<li class="list-group-item"><div class="d-flex justify-content-between"><strong>{{ c.label }}</strong>{% if c.ok %}<span class="badge text-bg-success">Configured</span>{% else %}<span class="badge text-bg-secondary">Not configured</span>{% endif %}</div>{% if not c.ok %}<div class="small text-muted">{{ c.hint }}</div>{% endif %}</li>{% endfor %}</ul>
+  <div class="card-body small text-muted">In-app notifications always work. External copies are only attempted for configured channels, and are reported as <em>sent</em> when the provider accepted them – <em>delivered</em> only when the provider confirms it{% if not confirmations %} (SMS/WhatsApp confirmation needs Twilio credentials and a public callback URL){% endif %}. E-mail delivery cannot be confirmed.</div></div>
+  <div class="card"><div class="card-header">Delivery log summary</div><ul class="list-group list-group-flush">{% for status, n in counts.items %}<li class="list-group-item d-flex justify-content-between"><span class="text-capitalize">{{ status }}</span><strong>{{ n }}</strong></li>{% endfor %}</ul></div></div></div>
+{% endblock %}
