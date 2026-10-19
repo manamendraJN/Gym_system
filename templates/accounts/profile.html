@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My profile</h1></div>
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-header">Personal details</div><div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% include "components/form_errors.html" %}
+        <div class="row">
+          <div class="col-md-6">{% include "components/form_field.html" with field=form.first_name %}</div>
+          <div class="col-md-6">{% include "components/form_field.html" with field=form.last_name %}</div>
+        </div>
+        {% include "components/form_field.html" with field=form.email %}
+        {% include "components/form_field.html" with field=form.phone %}
+        <button class="btn btn-primary" type="submit">Save changes</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header">Account</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Username</span><strong>{{ user.username }}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Role</span><span class="badge text-bg-dark">{{ user.get_role_display }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Account created</span><span>{{ user.date_joined|date:"M j, Y" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Last sign-in</span><span>{{ user.last_login|date:"M j, Y H:i"|default:"—" }}</span></li>
+      </ul>
+      <div class="card-body"><a href="{% url 'accounts:password_change' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-key me-1"></i>Change password</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

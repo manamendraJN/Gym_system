@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1><a href="{% url 'accounts:user_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left me-1"></i>Back</a></div>
+<div class="card" style="max-width:720px"><div class="card-body">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "components/form_errors.html" %}
+    {% if form.username %}{% include "components/form_field.html" with field=form.username %}{% endif %}
+    <div class="row">
+      <div class="col-md-6">{% include "components/form_field.html" with field=form.first_name %}</div>
+      <div class="col-md-6">{% include "components/form_field.html" with field=form.last_name %}</div>
+      <div class="col-md-6">{% include "components/form_field.html" with field=form.email %}</div>
+      <div class="col-md-6">{% include "components/form_field.html" with field=form.phone %}</div>
+      <div class="col-md-6">{% include "components/form_field.html" with field=form.role %}</div>
+    </div>
+    {% if form.password1 %}
+      <div class="row">
+        <div class="col-md-6">{% include "components/form_field.html" with field=form.password1 %}</div>
+        <div class="col-md-6">{% include "components/form_field.html" with field=form.password2 %}</div>
+      </div>
+    {% endif %}
+    {% include "components/form_field.html" with field=form.is_active %}
+    {% if form.role.field.disabled %}<p class="text-muted small"><i class="bi bi-info-circle me-1"></i>You cannot change your own role or status.</p>{% endif %}
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-link" href="{% url 'accounts:user_list' %}">Cancel</a>
+  </form>
+</div></div>
+{% endblock %}
