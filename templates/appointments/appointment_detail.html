@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Session – {{ object.member.full_name }}{% endblock %}
+{% block content %}
+{% with a=object %}
+<div class="page-header">
+  <div><h1>{{ a.start|date:"D, M j, Y" }} · {{ a.start|time:"H:i" }}–{{ a.end|time:"H:i" }}</h1>
+    <div class="text-muted">{{ a.member.full_name }} with {{ a.trainer.full_name }}</div>
+    <div class="mt-1">{% include "components/status_badge.html" with key=a.status_key label=a.status_label %}</div></div>
+  <div class="d-flex flex-wrap gap-2"><a href="{% url 'appointments:list' %}" class="btn btn-outline-secondary">Back</a>
+    {% if can_manage and a.status == "scheduled" %}
+      <a href="{% url 'appointments:reschedule' a.pk %}" class="btn btn-outline-secondary"><i class="bi bi-calendar2-week me-1"></i>Reschedule</a>
+      <a href="{% url 'appointments:cancel' a.pk %}" class="btn btn-outline-danger">Cancel</a>
+      <form method="post" action="{% url 'appointments:complete' a.pk %}" data-no-loading>{% csrf_token %}<button class="btn btn-success" data-no-loading><i class="bi bi-check2-circle me-1"></i>Mark completed</button></form>
+      <form method="post" action="{% url 'appointments:no_show' a.pk %}" data-no-loading data-confirm="Mark this session as a no-show?">{% csrf_token %}<button class="btn btn-outline-secondary" data-no-loading>No-show</button></form>
+    {% endif %}</div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="card"><div class="card-header">Details</div><div class="card-body"><dl class="detail-list mb-0">
+    <dt>Member</dt><dd>{% if request.user|can:"members.view" %}<a href="{{ a.member.get_absolute_url }}">{{ a.member.full_name }}</a>{% else %}{{ a.member.full_name }}{% endif %} ({{ a.member.member_id }})</dd>
+    <dt>Trainer</dt><dd>{{ a.trainer.full_name }}</dd><dt>Length</dt><dd>{{ a.duration_minutes }} minutes</dd>
+    <dt>Fee</dt><dd>{% if a.fee %}{{ a.fee|lkr }}{% else %}Free{% endif %}</dd>
+    {% if a.notes %}<dt>Notes</dt><dd>{{ a.notes }}</dd>{% endif %}
+    {% if a.status == "cancelled" %}<dt>Cancelled</dt><dd>{{ a.cancelled_at|date:"M j, Y H:i" }} by {{ a.cancelled_by.display_name|default:"—" }} – {{ a.cancel_reason }}</dd>{% endif %}
+    <dt>Booked</dt><dd>{{ a.created_at|date:"M j, Y H:i" }} by {{ a.booked_by.display_name|default:"—" }} ({{ a.booked_via }})</dd></dl></div></div></div>
+  <div class="col-lg-6">
+    {% if billing %}<div class="card mb-4"><div class="card-header d-flex justify-content-between align-items-center">Fee &amp; payments
+      <span class="d-flex gap-2">{% if request.user|can:"payments.manage" and a.status != "cancelled" and billing.outstanding > billing.pending_total %}<a href="{% url 'payments:record_appointment' a.pk %}" class="btn btn-sm btn-primary">Record payment</a>{% endif %}
+      {% if request.user|can:"payments.adjust" and a.status != "cancelled" %}<a href="{% url 'payments:adjust_appointment' a.pk %}" class="btn btn-sm btn-outline-secondary">Adjust</a>{% endif %}</span></div>
+      <div class="card-body">{% include "payments/_balance.html" with b=billing %}
+        {% if payments %}<hr><ul class="list-unstyled mb-0 small">{% for p in payments %}<li><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a> · {{ p.get_kind_display }} {{ p.amount|lkr }} {% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</li>{% endfor %}</ul>{% endif %}</div></div>{% endif %}
+    <div class="card"><div class="card-header">History</div><ul class="list-group list-group-flush">
+      {% for e in events %}<li class="list-group-item small"><strong>{{ e.action|capfirst }}</strong> {{ e.detail }} <span class="text-muted">· {{ e.user.display_name|default:"system" }} · {{ e.created_at|date:"M j, H:i" }}</span></li>{% endfor %}</ul></div>
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

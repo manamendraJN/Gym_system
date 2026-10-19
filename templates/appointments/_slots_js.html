@@ -1,0 +1,23 @@
+<script>
+(function () {
+  var form = document.getElementById("bookForm"); if (!form) return;
+  var box = document.getElementById("slots"), url = form.dataset.slotsUrl;
+  var f = {trainer: form.querySelector("[name=trainer]"), date: form.querySelector("[name=date]"), duration: form.querySelector("[name=duration]"), time: form.querySelector("[name=time]")};
+  function refresh() {
+    box.innerHTML = "";
+    if (!f.trainer.value || !f.date.value) return;
+    fetch(url + "?trainer=" + encodeURIComponent(f.trainer.value) + "&date=" + f.date.value + "&duration=" + f.duration.value, {credentials: "same-origin"})
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.slots.length) { box.innerHTML = '<span class="text-muted small">No free slots on that day.</span>'; return; }
+        data.slots.forEach(function (s) {
+          var b = document.createElement("button"); b.type = "button"; b.className = "btn btn-sm btn-outline-secondary"; b.textContent = s;
+          b.addEventListener("click", function () { f.time.value = s; Array.prototype.forEach.call(box.children, function (c) { c.classList.remove("active"); }); b.classList.add("active"); });
+          box.appendChild(b);
+        });
+      }).catch(function () {});
+  }
+  ["trainer", "date", "duration"].forEach(function (k) { f[k].addEventListener("change", refresh); });
+  refresh();
+})();
+</script>

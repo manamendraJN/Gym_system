@@ -1,0 +1,5 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{{ appointment.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ appointment.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="mb-3"><strong>{{ appointment.member.full_name }}</strong> with {{ appointment.trainer.full_name }}<br>
+  <span class="text-muted">{{ appointment.start|date:"D, M j, Y H:i" }} · {{ appointment.duration_minutes }} min</span></p>{% endblock %}

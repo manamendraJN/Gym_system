@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Training appointments{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Training appointments</h1>
+  {% if request.user|can:"appointments.manage" %}<a href="{% url 'appointments:book' %}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book session</a>{% endif %}</div>
+<ul class="nav nav-pills mb-3">
+  <li class="nav-item"><a class="nav-link {% if when == 'upcoming' %}active{% endif %}" href="?when=upcoming">Upcoming</a></li>
+  <li class="nav-item"><a class="nav-link {% if when == 'past' %}active{% endif %}" href="?when=past">History</a></li>
+  <li class="nav-item"><a class="nav-link {% if when == 'all' %}active{% endif %}" href="?when=all">All</a></li>
+</ul>
+<div class="card">
+  <div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+    <input type="hidden" name="when" value="{{ when }}">
+    <div class="col-lg-3">{% include "components/search_bar.html" with q=q placeholder="Member or trainer" %}</div>
+    <div class="col-6 col-lg-2"><select name="trainer" class="form-select" aria-label="Trainer"><option value="">Any trainer</option>{% for t in trainers %}<option value="{{ t.pk }}" {% if t.pk|stringformat:"s" == trainer %}selected{% endif %}>{{ t.full_name }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-2"><select name="status" class="form-select" aria-label="Status"><option value="">Any status</option>{% for v, l in statuses %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+    <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+    <div class="col-lg-1 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading><i class="bi bi-funnel"></i></button>
+      {% if filtered_on %}<a href="?when={{ when }}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  </form></div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>When</th><th>Member</th><th>Trainer</th><th>Length</th><th>Fee</th><th>Status</th></tr></thead><tbody>
+    {% for a in object_list %}<tr>
+      <td class="text-nowrap"><a href="{{ a.get_absolute_url }}" class="fw-semibold">{{ a.start|date:"D, M j, Y" }}</a><div><small class="text-muted">{{ a.start|time:"H:i" }}–{{ a.end|time:"H:i" }}</small></div></td>
+      <td><a href="{{ a.member.get_absolute_url }}" class="text-reset">{{ a.member.full_name }}</a><div><small class="text-muted">{{ a.member.member_id }}</small></div></td>
+      <td>{{ a.trainer.full_name }}</td><td>{{ a.duration_minutes }} min</td>
+      <td class="text-nowrap">{% if a.fee %}{{ a.fee|lkr }}{% else %}<span class="text-muted">Free</span>{% endif %}</td>
+      <td>{% include "components/status_badge.html" with key=a.status_key label=a.status_label %}</td></tr>
+    {% empty %}<tr><td colspan="6">{% include "components/empty_state.html" with icon="calendar-x" title="No sessions found" text="Try another tab or filter." %}</td></tr>{% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}
