@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}My workouts{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My workout plans</h1></div>
+<div class="row g-3 mb-4">
+{% for p in plans %}<div class="col-md-6"><div class="card h-100"><div class="card-body">
+  <div class="d-flex justify-content-between"><h2 class="h5"><a href="{% url 'portal:workout' p.pk %}">{{ p.name }}</a></h2>{% include "components/status_badge.html" with key=p.status_key label=p.status_label %}</div>
+  <div class="text-muted small">{{ p.start_date|date:"M j, Y" }}{% if p.end_date %} – {{ p.end_date|date:"M j, Y" }}{% endif %}{% if p.trainer %} · {{ p.trainer.full_name }}{% endif %}</div>
+  {% if p.goal %}<p class="mb-0 mt-2">{{ p.goal }}</p>{% endif %}</div></div></div>
+{% empty %}<div class="col-12"><div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="clipboard-check" title="No workout plans yet" text="Your trainer will assign one." %}</div></div></div>{% endfor %}
+</div>
+{% if sessions %}<div class="card"><div class="card-header">Recent workouts</div><ul class="list-group list-group-flush">{% for s in sessions %}
+  <li class="list-group-item small"><strong>{{ s.performed_on|date:"M j, Y" }}</strong> {{ s.plan.name }} – {% for e in s.entries.all %}{{ e.exercise.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</li>{% endfor %}</ul></div>{% endif %}
+{% endblock %}

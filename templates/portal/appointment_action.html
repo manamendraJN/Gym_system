@@ -1,0 +1,4 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{% url 'portal:appointments' %}{% endblock %}
+{% block cancel_url %}{% url 'portal:appointments' %}{% endblock %}
+{% block before_form %}<p><strong>{{ appointment.start|date:"D, M j, Y H:i" }}</strong> with {{ appointment.trainer.full_name }}</p>{% endblock %}

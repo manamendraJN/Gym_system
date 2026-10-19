@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Welcome, {{ request.user.first_name|default:request.user.username }}</h1></div>
+<div class="card" style="max-width:640px"><div class="card-body">
+  {% include "components/empty_state.html" with icon="link-45deg" title="Your login is not linked to a member record yet" text="Please ask the front desk to link your account, then your trainers, workouts, sessions and progress will appear here." %}
+</div></div>
+{% endblock %}

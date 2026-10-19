@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}My trainers{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My trainers</h1></div>
+<div class="row g-3">
+{% for t in trainers %}<div class="col-md-6"><div class="card h-100"><div class="card-body">
+  <div class="d-flex gap-3">{% if t.photo %}<img src="{{ t.photo.url }}" alt="" class="avatar-lg">{% else %}<span class="avatar-lg">{{ t.initials }}</span>{% endif %}
+    <div><h2 class="h5 mb-0">{{ t.full_name }}</h2><div class="mb-1">{% for s in t.specialty_list %}<span class="badge text-bg-light border me-1">{{ s }}</span>{% endfor %}</div>
+      <div class="small text-muted">{{ t.phone }}</div></div></div>
+  {% if t.bio %}<p class="mt-3 mb-2">{{ t.bio|linebreaksbr }}</p>{% endif %}
+  {% if t.qualifications %}<p class="small text-muted mb-2"><strong>Qualifications:</strong> {{ t.qualifications|linebreaksbr }}</p>{% endif %}
+  <div class="small"><strong>Availability:</strong> {% for a in t.availability.all %}{{ a.get_weekday_display|slice:":3" }} {{ a.start_time|time:"H:i" }}–{{ a.end_time|time:"H:i" }}{% if not forloop.last %} · {% endif %}{% empty %}not set{% endfor %}</div>
+  {% if t.hourly_rate %}<div class="small text-muted">Sessions: {{ t.hourly_rate|lkr }} per hour</div>{% endif %}
+  <a href="{% url 'portal:book' %}?trainer={{ t.pk }}" class="btn btn-primary btn-sm mt-3">Book a session</a>
+</div></div></div>
+{% empty %}<div class="col-12"><div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="person-badge" title="No trainer assigned yet" text="Ask the front desk to assign a trainer." %}</div></div></div>{% endfor %}
+</div>
+{% if past %}<h2 class="h6 mt-4 text-muted">Previous trainers</h2><ul class="list-group">{% for a in past %}<li class="list-group-item">{{ a.trainer.full_name }} <span class="text-muted small">{{ a.start_date|date:"M Y" }} – {{ a.end_date|date:"M Y" }}</span></li>{% endfor %}</ul>{% endif %}
+{% endblock %}

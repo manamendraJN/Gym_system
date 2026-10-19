@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}My sessions{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My training sessions</h1>{% if trainers %}<a href="{% url 'portal:book' %}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book a session</a>{% endif %}</div>
+<div class="card mb-4"><div class="card-header">Upcoming</div>
+  {% if upcoming %}<div class="table-responsive"><table class="table mb-0"><tbody>{% for a in upcoming %}<tr>
+    <td class="text-nowrap"><strong>{{ a.start|date:"D, M j, Y" }}</strong><div class="small text-muted">{{ a.start|time:"H:i" }}–{{ a.end|time:"H:i" }}</div></td>
+    <td>{{ a.trainer.full_name }}</td><td>{% if a.fee %}{{ a.fee|lkr }}{% else %}Free{% endif %}</td><td>{% include "components/status_badge.html" with key=a.status_key label=a.status_label %}</td>
+    <td class="text-end text-nowrap">{% if a.can_change %}<a href="{% url 'portal:reschedule' a.pk %}" class="btn btn-sm btn-outline-secondary">Reschedule</a> <a href="{% url 'portal:cancel' a.pk %}" class="btn btn-sm btn-outline-danger">Cancel</a>
+      {% else %}<span class="small text-muted">Changes need {{ notice }}h notice – call the gym</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="calendar-x" title="No upcoming sessions" text="Book one with your trainer." %}</div>{% endif %}</div>
+<div class="card"><div class="card-header">History</div>
+  {% if past %}<div class="table-responsive"><table class="table mb-0"><tbody>{% for a in past %}<tr><td class="text-nowrap">{{ a.start|date:"M j, Y H:i" }}</td><td>{{ a.trainer.full_name }}</td><td>{% include "components/status_badge.html" with key=a.status_key label=a.status_label %}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="card-body text-muted small">Nothing yet.</div>{% endif %}</div>
+{% endblock %}

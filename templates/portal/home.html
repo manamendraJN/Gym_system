@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}My account{% endblock %}
+{% block content %}
+{% include "announcements/_banner.html" %}
+<div class="page-header"><div><h1>Hello, {{ member.full_name }}</h1><div class="text-muted">{{ member.member_id }}</div></div>
+  <a href="{% url 'portal:book' %}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book a session</a></div>
+<div class="row g-4">
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header">My membership</div><div class="card-body">
+    {% if membership %}<div class="d-flex justify-content-between"><div><div class="fs-5 fw-semibold">{{ membership.plan.name }}</div>
+      <div class="text-muted">{{ membership.start_date|date:"M j, Y" }} – {{ membership.end_date|date:"M j, Y" }}</div></div>
+      <div>{% include "components/status_badge.html" with key=status_key label=status_label %}</div></div>
+    {% else %}{% include "components/empty_state.html" with icon="card-checklist" title="No membership yet" text="Please speak to the front desk." %}{% endif %}</div></div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">Upcoming sessions <a href="{% url 'portal:appointments' %}" class="small fw-normal">All</a></div>
+    {% if next_appointments %}<ul class="list-group list-group-flush">{% for a in next_appointments %}<li class="list-group-item"><strong>{{ a.start|date:"D, M j" }}</strong> {{ a.start|time:"H:i" }} · {{ a.trainer.full_name }}</li>{% endfor %}</ul>
+    {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="calendar-x" title="No upcoming sessions" %}</div>{% endif %}</div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">My trainers <a href="{% url 'portal:trainers' %}" class="small fw-normal">Details</a></div>
+    {% if trainers %}<ul class="list-group list-group-flush">{% for t in trainers %}<li class="list-group-item">{{ t.full_name }} <span class="text-muted small">{{ t.specialties }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="person-badge" title="No trainer assigned" %}</div>{% endif %}</div></div>
+  <div class="col-lg-6"><div class="card h-100"><div class="card-header d-flex justify-content-between">My workout plans <a href="{% url 'portal:workouts' %}" class="small fw-normal">All</a></div>
+    {% if plans %}<ul class="list-group list-group-flush">{% for p in plans %}<li class="list-group-item"><a href="{% url 'portal:workout' p.pk %}">{{ p.name }}</a></li>{% endfor %}</ul>
+    {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="clipboard-check" title="No workout plan yet" %}</div>{% endif %}</div></div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}My nutrition{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My nutrition</h1></div>
+{% include "nutrition/_disclaimer.html" %}
+<div class="row g-4"><div class="col-lg-8">
+  {% for entry in plans %}<h2 class="h5">{{ entry.plan.name }}</h2>{% if entry.plan.goal %}<p class="text-muted">{{ entry.plan.goal }}</p>{% endif %}
+    {% with days=entry.days %}{% include "nutrition/_days.html" %}{% endwith %}
+  {% empty %}<div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="egg-fried" title="No meal plan yet" text="Your trainer can create one for you." %}</div></div>{% endfor %}
+</div><div class="col-lg-4"><div class="card"><div class="card-header">My food preferences</div><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}{% include "components/form_errors.html" %}{% for field in form.visible_fields %}{% include "components/form_field.html" with field=field %}{% endfor %}<button class="btn btn-primary w-100" type="submit">Save</button></form></div></div></div></div>
+{% endblock %}
