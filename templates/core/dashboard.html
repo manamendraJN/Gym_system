@@ -176,10 +176,10 @@
 {% if expense_stats %}{{ expense_stats.chart|json_script:"expense-cat-data" }}{{ expense_stats.trend|json_script:"rev-exp-data" }}{% endif %}
 {% if equipment %}{{ equipment.counts|json_script:"equipment-data" }}{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>Chart.defaults.animation = false;</script>
+<script>Chart.defaults.animation = false; window.gymColor = function (n) { return getComputedStyle(document.documentElement).getPropertyValue("--gym-" + n).trim(); }; Chart.defaults.color = gymColor("muted"); Chart.defaults.borderColor = gymColor("border");</script>
 <script>
 (function () {
-  var palette = ["#0f766e", "#1f2933", "#3b5b7a", "#2f7d5b", "#6b7280", "#5b8a9a"];
+  var palette = [gymColor("accent"), gymColor("text"), "#3b5b7a", "#2f7d5b", "#6b7280", "#5b8a9a"];
   function data(id) { return JSON.parse(document.getElementById(id).textContent); }
   var role = data("role-chart-data"), rev = data("revenue-chart-data"), att = data("attendance-chart-data");
   var roleEl = document.getElementById("roleChart");
@@ -191,7 +191,7 @@
   var revEl = document.getElementById("revenueChart");
   if (revEl && rev.labels.length) {
     new Chart(revEl, { type: "bar",
-      data: { labels: rev.labels, datasets: [{ label: "Revenue (LKR)", data: rev.values, backgroundColor: "#0f766e", borderRadius: 6 }] },
+      data: { labels: rev.labels, datasets: [{ label: "Revenue (LKR)", data: rev.values, backgroundColor: gymColor("accent"), borderRadius: 6 }] },
       options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
   }
   function maybe(id) { var el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; }
@@ -205,7 +205,7 @@
   var attEl = document.getElementById("attendanceChart");
   if (attEl) {
     new Chart(attEl, { type: "bar",
-      data: { labels: att.labels, datasets: [{ label: "Check-ins", data: att.values, backgroundColor: "#1f2933", borderRadius: 6 }] },
+      data: { labels: att.labels, datasets: [{ label: "Check-ins", data: att.values, backgroundColor: gymColor("text"), borderRadius: 6 }] },
       options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
   }
 })();

@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}System customization{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>System customization</h1><div class="text-muted">Branding, theme and layout. Changes apply to everyone who uses the system.</div></div>
+  <div class="d-flex gap-2 flex-wrap"><a href="{% url 'core:gym_settings' %}" class="btn btn-outline-secondary">Gym details</a>
+    <form method="post" action="{% url 'core:appearance_reset' %}" data-no-loading data-confirm="Reset the theme and layout to the defaults? Your logo, images, texts and gym name are kept.">{% csrf_token %}<button class="btn btn-outline-danger" data-no-loading><i class="bi bi-arrow-counterclockwise me-1"></i>Reset theme and layout</button></form></div></div>
+
+<form method="post" enctype="multipart/form-data" id="appearance-form" novalidate>
+  {% csrf_token %}
+  {% include "components/form_errors.html" %}
+  <div class="row g-4">
+    <div class="col-lg-3 d-none d-lg-block"><nav class="card position-sticky" style="top:72px" aria-label="Sections"><div class="list-group list-group-flush">
+      <a class="list-group-item list-group-item-action" href="#branding">Branding</a>
+      <a class="list-group-item list-group-item-action" href="#login">Sign-in page</a>
+      <a class="list-group-item list-group-item-action" href="#theme">Theme &amp; preview</a>
+      <a class="list-group-item list-group-item-action" href="#layout">Layout &amp; typography</a></div></nav></div>
+
+    <div class="col-lg-9">
+      <section class="card mb-4" id="branding"><div class="card-header">Branding</div><div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label" for="{{ identity.name.id_for_label }}">Gym / company name</label>{{ identity.name }}{% for e in identity.name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">Shown in the sidebar, page titles, receipts, reports and e-mails.</div></div>
+          <div class="col-md-6"><label class="form-label" for="{{ identity.tagline.id_for_label }}">Tagline</label>{{ identity.tagline }}{% for e in identity.tagline.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+        </div>
+        <hr>
+        <div class="row g-4">
+          <div class="col-md-6"><label class="form-label" for="{{ form.logo.id_for_label }}">Logo</label>
+            {% if current.logo %}<div class="border rounded p-2 mb-2 bg-body-tertiary text-center"><img src="{{ current.logo.url }}" alt="Current logo" style="max-height:64px;max-width:100%"></div>{% endif %}
+            {{ form.logo }}{% for e in form.logo.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text">PNG, JPEG or WebP, up to 2 MB. Shown in the sidebar and on the sign-in page. Choose a new file to replace it.</div>
+            {% if current.logo %}<div class="form-check mt-1">{{ form.remove_logo }}<label class="form-check-label" for="{{ form.remove_logo.id_for_label }}">{{ form.remove_logo.label }}</label></div>{% endif %}</div>
+          <div class="col-md-6"><label class="form-label" for="{{ form.favicon.id_for_label }}">Favicon</label>
+            {% if current.favicon %}<div class="border rounded p-2 mb-2 bg-body-tertiary"><img src="{{ current.favicon.url }}" alt="Current favicon" style="height:32px;width:32px;object-fit:contain"></div>{% endif %}
+            {{ form.favicon }}{% for e in form.favicon.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text">PNG or ICO, up to 512 KB, longest side 512 px. Shown in the browser tab.</div>
+            {% if current.favicon %}<div class="form-check mt-1">{{ form.remove_favicon }}<label class="form-check-label" for="{{ form.remove_favicon.id_for_label }}">{{ form.remove_favicon.label }}</label></div>{% endif %}</div>
+        </div>
+      </div></section>
+
+      <section class="card mb-4" id="login"><div class="card-header">Sign-in page</div><div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label" for="{{ form.login_title.id_for_label }}">Heading</label>{{ form.login_title }}{% for e in form.login_title.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">{{ form.login_title.help_text }}</div></div>
+          <div class="col-md-6"><label class="form-label" for="{{ form.login_message.id_for_label }}">Welcome message</label>{{ form.login_message }}{% for e in form.login_message.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">{{ form.login_message.help_text }}</div></div>
+          <div class="col-12"><label class="form-label" for="{{ form.login_background.id_for_label }}">Background image</label>
+            {% if current.login_background %}<div class="border rounded mb-2" style="height:120px;background:#14181d url('{{ current.login_background.url }}') center/cover"><span class="visually-hidden">Current background image</span></div>{% endif %}
+            {{ form.login_background }}{% for e in form.login_background.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            <div class="form-text">JPEG, PNG or WebP, up to 4 MB. It is darkened automatically so the sign-in card stays readable.</div>
+            {% if current.login_background %}<div class="form-check mt-1">{{ form.remove_login_background }}<label class="form-check-label" for="{{ form.remove_login_background.id_for_label }}">{{ form.remove_login_background.label }}</label></div>{% endif %}</div>
+        </div></div></section>
+
+      <section class="card mb-4" id="theme"><div class="card-header">Theme &amp; preview</div><div class="card-body">
+        <div class="row g-4">
+          <div class="col-xl-6">
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label" for="{{ form.theme_preset.id_for_label }}">Theme</label>{{ form.theme_preset }}</div>
+              <div class="col-md-6"><label class="form-label" for="{{ form.mode.id_for_label }}">Appearance</label>{{ form.mode }}</div>
+              <div class="col-6 col-md-4"><label class="form-label" for="{{ form.primary_color.id_for_label }}">Primary</label>{{ form.primary_color }}{% for e in form.primary_color.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">Buttons, links</div></div>
+              <div class="col-6 col-md-4"><label class="form-label" for="{{ form.secondary_color.id_for_label }}">Secondary</label>{{ form.secondary_color }}{% for e in form.secondary_color.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">Sidebar</div></div>
+              <div class="col-6 col-md-4"><label class="form-label" for="{{ form.accent_color.id_for_label }}">Accent</label>{{ form.accent_color }}{% for e in form.accent_color.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}<div class="form-text">Highlights</div></div>
+              <div class="col-6 col-md-3"><label class="form-label" for="{{ form.background_color.id_for_label }}">Background</label>{{ form.background_color }}</div>
+              <div class="col-6 col-md-3"><label class="form-label" for="{{ form.surface_color.id_for_label }}">Surface</label>{{ form.surface_color }}</div>
+              <div class="col-6 col-md-3"><label class="form-label" for="{{ form.text_color.id_for_label }}">Text</label>{{ form.text_color }}{% for e in form.text_color.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}</div>
+              <div class="col-6 col-md-3"><label class="form-label" for="{{ form.border_color.id_for_label }}">Border</label>{{ form.border_color }}</div>
+            </div>
+            <div class="form-text mt-2">Background, surface, text and border colours apply to light mode; dark mode uses a matching dark palette. Colours must keep text readable (contrast at least 4.5:1); the form tells you if they don't.</div>
+          </div>
+          <div class="col-xl-6">
+            <div class="small text-muted mb-1">Live preview (nothing is saved until you press Save)</div>
+            <div id="theme-preview" class="pv" data-sidebar="{{ form.sidebar_style.value }}">
+              <div class="pv-side"><div class="pv-brand">{% if current.logo %}<img src="{{ current.logo.url }}" alt="" class="brand-logo">{% else %}<i class="bi bi-lightning-charge-fill"></i>{% endif %} {{ GYM_NAME }}</div>
+                <div class="pv-link active"><i class="bi bi-speedometer2"></i> Dashboard</div><div class="pv-link"><i class="bi bi-people-fill"></i> Members</div><div class="pv-link"><i class="bi bi-cash-stack"></i> Payments</div></div>
+              <div class="pv-main">
+                <div class="pv-top">Section</div>
+                <div class="pv-body">
+                  <div class="pv-card"><div class="pv-card-head">Revenue this month</div>
+                    <div class="pv-card-body"><div class="pv-value">LKR 23,500.00</div>
+                      <div class="d-flex gap-2 flex-wrap my-2"><button type="button" class="btn btn-primary btn-sm" tabindex="-1">Primary</button><button type="button" class="btn btn-outline-secondary btn-sm" tabindex="-1">Secondary</button><a href="#theme" class="pv-a" tabindex="-1">Link</a></div>
+                      <input class="form-control form-control-sm mb-2" value="Sample input" tabindex="-1" aria-label="Sample input" readonly>
+                      <table class="table table-sm mb-2"><thead><tr><th>Member</th><th>Status</th></tr></thead><tbody><tr><td>Demo Alice</td><td><span class="badge text-bg-success">Active</span></td></tr></tbody></table></div></div>
+                </div></div>
+            </div>
+          </div>
+        </div></div></section>
+
+      <section class="card mb-4" id="layout"><div class="card-header">Layout &amp; typography</div><div class="card-body">
+        <div class="row g-3">
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.sidebar_style.id_for_label }}">Sidebar</label>{{ form.sidebar_style }}</div>
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.sidebar_width.id_for_label }}">Sidebar width</label>{{ form.sidebar_width }}</div>
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.stat_columns.id_for_label }}">Dashboard tiles</label>{{ form.stat_columns }}<div class="form-text">On wide screens</div></div>
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.density.id_for_label }}">Spacing</label>{{ form.density }}</div>
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.font_scale.id_for_label }}">Text size</label>{{ form.font_scale }}</div>
+          <div class="col-6 col-md-4"><label class="form-label" for="{{ form.font_family.id_for_label }}">Font</label>{{ form.font_family }}</div>
+        </div></div></section>
+
+      <div class="d-flex gap-2 flex-wrap"><button class="btn btn-primary" type="submit"><i class="bi bi-check2 me-1"></i>Save customization</button>
+        <a class="btn btn-outline-secondary" href="{% url 'core:appearance' %}">Cancel</a></div>
+    </div>
+  </div>
+</form>
+{{ preset_json|json_script:"preset-data" }}
+<div id="preview-config" data-url="{% url 'core:appearance_preview' %}" hidden></div>
+<style id="preview-style"></style>
+{% endblock %}
+{% block extra_js %}<script src="{% static 'js/appearance.js' %}"></script>{% endblock %}

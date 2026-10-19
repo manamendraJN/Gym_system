@@ -26,11 +26,11 @@
 {% block extra_js %}
 {{ chart|json_script:"progress-data" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>Chart.defaults.animation = false;</script>
+<script>Chart.defaults.animation = false; window.gymColor = function (n) { return getComputedStyle(document.documentElement).getPropertyValue("--gym-" + n).trim(); }; Chart.defaults.color = gymColor("muted"); Chart.defaults.borderColor = gymColor("border");</script>
 <script>
 (function () {
   var d = JSON.parse(document.getElementById("progress-data").textContent);
-  var colors = ["#0f766e", "#1f2933", "#3b5b7a", "#2f7d5b", "#6b7280", "#5b8a9a"];
+  var colors = [gymColor("accent"), gymColor("text"), "#3b5b7a", "#2f7d5b", "#6b7280", "#5b8a9a"];
   var opts = {maintainAspectRatio: false, spanGaps: true, plugins: {legend: {display: true}}};
   var w = document.getElementById("weightChart");
   if (w && d.labels.length) new Chart(w, {type: "line", data: {labels: d.labels, datasets: [{label: "Weight (kg)", data: d.weight, borderColor: colors[0], backgroundColor: colors[0], tension: .25}]}, options: opts});

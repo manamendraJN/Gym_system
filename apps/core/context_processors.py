@@ -5,7 +5,10 @@ def site(request):
     from .gym import gym
 
     current = gym()
-    ctx = {"GYM_NAME": current.name, "GYM": current, "NUTRITION_ENABLED": settings.NUTRITION_ENABLED, "INVENTORY_ENABLED": settings.INVENTORY_ENABLED}
+    from .appearance import template_context
+
+    look = template_context()
+    ctx = {"APPEARANCE": look, "GYM_NAME": current.name, "GYM": current, "NUTRITION_ENABLED": settings.NUTRITION_ENABLED, "INVENTORY_ENABLED": settings.INVENTORY_ENABLED}
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
         from .models import Notification

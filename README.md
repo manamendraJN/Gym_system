@@ -129,6 +129,19 @@ Because payments, stock movements and audit entries are append-only, a restore f
 `python manage.py createsuperuser` creates the Super Admin (the only role that can edit permissions and create Gym Manager accounts). Create everyone else in *Users*, then link member
 logins from a member's profile (*Member portal access*) and trainer logins on the trainer's form.
 
+## System customization
+
+**Customization** (sidebar → Administration, `/settings/appearance/`) lets an authorised administrator change the look of the whole system without touching code:
+branding (gym name, tagline, logo, favicon, sign-in heading, welcome message and background image), the theme (five predefined palettes, or your own primary, secondary,
+accent, background, surface, text and border colours; light, dark or follow-the-device) and the layout (light/dark sidebar, sidebar width, spacing, text size,
+font, dashboard tiles per row). A live preview shows the result before anything is saved, and **Reset theme and layout** restores the defaults (branding is kept).
+Settings are stored in the database (`Appearance` model, migration `core/0006`) and take effect immediately for everyone, including the sign-in page.
+
+* Permission `settings.appearance`: held by the Super Admin only until another role is granted it under *Roles & permissions*.
+* Colours are validated (hex format, readable contrast) and uploads are checked by content: logo and background JPEG/PNG/WebP, favicon PNG/ICO, size and dimension
+  limits; SVG is refused. Files get random names under `media/branding/` and are served through the normal `MEDIA_URL` (in production nginx maps `/media/`). Replaced
+  or removed images are deleted from disk. No secrets are shown or stored by this screen.
+
 ## Security overview
 * Server-side authorisation on every view (`GymPermissionMixin`); a site-wide login requirement (`LoginRequiredMiddleware`) with an explicit public allow-list; navigation hides what a role cannot use, but hiding is never the only control.
 * Data isolation: trainers are limited to assigned members (members, attendance, memberships, workouts, progress, nutrition, sessions); members only reach `/me/...` and only their own rows.

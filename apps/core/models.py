@@ -109,3 +109,77 @@ class SampleRecord(models.Model):
 
     def __str__(self):
         return f"{self.model_label}#{self.object_pk}"
+
+
+def branding_path(instance, filename):
+    import uuid
+
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "png"
+    return f"branding/{uuid.uuid4().hex}.{ext}"
+
+
+class Appearance(models.Model):
+    """Single-row (pk=1) system customisation: branding images, login page text, theme colours and layout preferences.
+    Read through apps/core/appearance.py, which validates/normalises everything before it reaches a template."""
+
+    class Mode(models.TextChoices):
+        LIGHT = "light", "Light"
+        DARK = "dark", "Dark"
+        SYSTEM = "system", "Follow the device setting"
+
+    class SidebarStyle(models.TextChoices):
+        DARK = "dark", "Dark"
+        LIGHT = "light", "Light"
+
+    class SidebarWidth(models.TextChoices):
+        EXPANDED = "expanded", "Expanded"
+        COMPACT = "compact", "Compact"
+
+    class Density(models.TextChoices):
+        COMFORTABLE = "comfortable", "Comfortable"
+        COMPACT = "compact", "Compact"
+
+    class FontScale(models.TextChoices):
+        SMALL = "small", "Small"
+        DEFAULT = "default", "Default"
+        LARGE = "large", "Large"
+
+    class FontFamily(models.TextChoices):
+        INTER = "inter", "Inter"
+        SYSTEM = "system", "System font"
+
+    class StatColumns(models.TextChoices):
+        FOUR = "4", "Four per row"
+        THREE = "3", "Three per row"
+
+    # branding
+    logo = models.ImageField(upload_to=branding_path, blank=True)
+    favicon = models.ImageField(upload_to=branding_path, blank=True)
+    login_background = models.ImageField(upload_to=branding_path, blank=True)
+    login_title = models.CharField(max_length=80, blank=True, help_text="Heading on the sign-in page. Leave empty for the default.")
+    login_message = models.CharField(max_length=200, blank=True, help_text="Short welcome message under the heading.")
+    # theme
+    theme_preset = models.CharField(max_length=20, default="graphite")
+    mode = models.CharField(max_length=10, choices=Mode.choices, default=Mode.LIGHT)
+    primary_color = models.CharField(max_length=7, blank=True)
+    secondary_color = models.CharField(max_length=7, blank=True)
+    accent_color = models.CharField(max_length=7, blank=True)
+    background_color = models.CharField(max_length=7, blank=True)
+    surface_color = models.CharField(max_length=7, blank=True)
+    text_color = models.CharField(max_length=7, blank=True)
+    border_color = models.CharField(max_length=7, blank=True)
+    # layout
+    sidebar_style = models.CharField(max_length=10, choices=SidebarStyle.choices, default=SidebarStyle.DARK)
+    sidebar_width = models.CharField(max_length=10, choices=SidebarWidth.choices, default=SidebarWidth.EXPANDED)
+    density = models.CharField(max_length=12, choices=Density.choices, default=Density.COMFORTABLE)
+    font_scale = models.CharField(max_length=10, choices=FontScale.choices, default=FontScale.DEFAULT)
+    font_family = models.CharField(max_length=10, choices=FontFamily.choices, default=FontFamily.INTER)
+    stat_columns = models.CharField(max_length=1, choices=StatColumns.choices, default=StatColumns.FOUR)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "appearance"
+
+    def __str__(self):
+        return "System appearance"

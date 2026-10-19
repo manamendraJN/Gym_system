@@ -37,3 +37,19 @@ def validate_document_upload(upload):
     else:
         raise forms.ValidationError("Upload a PDF, JPEG or PNG file.")
     return upload
+
+
+def validate_branding_image(upload, kind):
+    """Logo / favicon / login background. Only freshly uploaded files are checked (Pillow has already parsed them).
+    SVG is deliberately not accepted: it can carry scripts."""
+    limits = {"logo": (2 * 1024 * 1024, {"JPEG", "PNG", "WEBP"}, 2000), "favicon": (512 * 1024, {"PNG", "ICO"}, 512),
+              "login_background": (4 * 1024 * 1024, {"JPEG", "PNG", "WEBP"}, 5000)}
+    max_bytes, formats, max_side = limits[kind]
+    if upload and hasattr(upload, "image"):
+        if upload.size > max_bytes:
+            raise forms.ValidationError(f"The file must be {max_bytes // 1024 // 1024 or max_bytes // 1024} {'MB' if max_bytes >= 1024 * 1024 else 'KB'} or smaller.")
+        if upload.image.format not in formats:
+            raise forms.ValidationError("Use " + ", ".join(sorted(f.title() for f in formats)) + " format.")
+        if max(upload.image.size) > max_side:
+            raise forms.ValidationError(f"The image is too large; the longest side may be {max_side}px.")
+    return upload

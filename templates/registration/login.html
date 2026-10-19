@@ -1,8 +1,8 @@
 {% extends "base_auth.html" %}
 {% block title %}Sign in{% endblock %}
 {% block content %}
-<h1 class="h5 fw-bold">Sign in to your account</h1>
-<p class="text-muted">Enter your credentials to continue.</p>
+<h1 class="h5 fw-bold">{{ APPEARANCE.obj.login_title|default:"Sign in to your account" }}</h1>
+<p class="text-muted">{{ APPEARANCE.obj.login_message|default:"Enter your credentials to continue." }}</p>
 <form method="post" novalidate>
   {% csrf_token %}
   {% include "components/form_errors.html" %}

@@ -49,6 +49,7 @@ PERMISSIONS = {
     "notifications.configure": "Configure reminder periods and notification channels",
     "settings.manage": "Edit gym settings (name, contact details, receipt footer)",
     "audit.view": "View the audit log",
+    "settings.appearance": "Customize branding, theme and layout (applies to everyone)",
 }
 
 # Only the Super Admin holds these; they never appear in the editable matrix.
@@ -73,7 +74,7 @@ PERMISSION_GROUPS = [
     ("Inventory", ["inventory.view", "inventory.manage"]),
     ("Expenses", ["expenses.view", "expenses.manage", "expenses.void"]),
     ("Announcements & notifications", ["announcements.manage", "notifications.configure"]),
-    ("Administration", ["settings.manage", "audit.view"]),
+    ("Administration", ["settings.manage", "settings.appearance", "audit.view"]),
 ]
 
 DEFAULT_ROLE_PERMISSIONS = {
