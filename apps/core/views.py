@@ -3,9 +3,21 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
-from django.views.generic import ListView, TemplateView
+from django.views.generic import FormView, ListView, TemplateView
 
-from .models import Notification
+from django import forms
+from django.db import connection
+from django.db.models import Q
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_not_required
+from django.utils.dateparse import parse_date
+
+from apps.accounts.forms import StyledFormMixin
+from apps.accounts.mixins import GymPermissionMixin
+from apps.accounts.models import User
+from apps.core.gym import gym
+
+from .models import ActivityLog, GymSettings, Notification
 
 from .stats import get_dashboard_stats
 
@@ -76,3 +88,86 @@ class NotificationReadView(View):
         if pk is not None and url_has_allowed_host_and_scheme(target, allowed_hosts={request.get_host()}) and target:
             return redirect(target)
         return redirect("core:notifications")
+
+
+# ----------------------------------------------------------------------------------- gym settings
+class GymSettingsForm(StyledFormMixin, forms.ModelForm):
+    class Meta:
+        model = GymSettings
+        fields = ["name", "tagline", "address", "phone", "email", "receipt_footer"]
+
+    def clean_name(self):
+        name = " ".join(self.cleaned_data["name"].split())
+        if len(name) < 2:
+            raise forms.ValidationError("Enter the gym's name.")
+        return name
+
+
+class GymSettingsView(GymPermissionMixin, FormView):
+    required_permission = "settings.manage"
+    form_class = GymSettingsForm
+    template_name = "core/gym_settings.html"
+
+    def get_context_data(self, **kwargs):
+        return super().get_context_data(title="Gym settings", **kwargs)
+
+    def get_form_kwargs(self):
+        current = gym()
+        instance = current if isinstance(current, GymSettings) else GymSettings(pk=1, name=current.name)
+        return {**super().get_form_kwargs(), "instance": instance}
+
+    def form_valid(self, form):
+        obj = form.save(commit=False)
+        obj.pk, obj.updated_by = 1, self.request.user
+        obj.save()
+        ActivityLog.record(self.request.user, "gym_settings_updated", f"Updated gym settings (name: {obj.name})")
+        messages.success(self.request, "Gym settings saved.")
+        return redirect("core:gym_settings")
+
+
+# ------------------------------------------------------------------------------------- audit log
+class AuditLogView(GymPermissionMixin, ListView):
+    """Read-only view of the activity trail (sign-ins, user/permission changes, financial and operational actions)."""
+
+    required_permission = "audit.view"
+    template_name = "core/audit_log.html"
+    paginate_by = 50
+
+    def get_queryset(self):
+        g = self.request.GET
+        qs = ActivityLog.objects.select_related("user")
+        q = g.get("q", "").strip()
+        if q:
+            qs = qs.filter(Q(description__icontains=q) | Q(action__icontains=q) | Q(user__username__icontains=q))
+        if g.get("user", "").isdigit():
+            qs = qs.filter(user_id=g["user"])
+        d_from, d_to = parse_date(g.get("from", "")), parse_date(g.get("to", ""))
+        if d_from:
+            qs = qs.filter(created_at__date__gte=d_from)
+        if d_to:
+            qs = qs.filter(created_at__date__lte=d_to)
+        area = g.get("area", "")
+        if area in AREAS:
+            qs = qs.filter(action__startswith=AREAS[area])
+        return qs
+
+    def get_context_data(self, **kwargs):
+        g = self.request.GET
+        return super().get_context_data(
+            q=g.get("q", ""), user_id=g.get("user", ""), date_from=g.get("from", ""), date_to=g.get("to", ""), area=g.get("area", ""),
+            areas=list(AREAS), users=User.objects.order_by("username"), filtered_on=any(g.get(k) for k in ("q", "user", "from", "to", "area")), **kwargs)
+
+
+AREAS = {"sign-in": "log", "users": "user_", "members": "member", "memberships": "membership_", "payments": "payment_", "expenses": "expense_",
+         "equipment": "equipment_", "inventory": "inventory_", "announcements": "announcement_", "permissions": "permissions_"}
+
+
+@login_not_required
+def healthz(request):
+    """Liveness / readiness probe for load balancers: confirms the app and its database respond. Reveals nothing else."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+    except Exception:
+        return JsonResponse({"status": "unavailable"}, status=503)
+    return JsonResponse({"status": "ok"})

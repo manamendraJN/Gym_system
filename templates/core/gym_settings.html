@@ -1,0 +1,5 @@
+{% extends "components/form_page.html" %}
+{% block title %}Gym settings{% endblock %}
+{% block back_url %}{% url 'core:home' %}{% endblock %}
+{% block cancel_url %}{% url 'core:home' %}{% endblock %}
+{% block before_form %}<p class="text-muted">These details appear in the application header, receipts, reports and e-mails.</p>{% endblock %}

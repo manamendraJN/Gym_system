@@ -21,6 +21,8 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.utils import timezone
 
+from apps.core.gym import gym
+
 from .models import Channel, DeliveryStatus, NotificationDelivery, NotificationPreference, NotificationSettings
 
 DEV_EMAIL_BACKENDS = ("console", "locmem", "dummy", "filebased")
@@ -96,7 +98,7 @@ def queue_deliveries(notification):
 
 # ---------------------------------------------------------------------------------------------- sending
 def _body(notification):
-    return f"{notification.message}\n\n— {settings.GYM_NAME}"
+    return f"{notification.message}\n\n— {gym().name}"
 
 
 def _send_email(delivery):

@@ -2,7 +2,10 @@ from django.conf import settings
 
 
 def site(request):
-    ctx = {"GYM_NAME": settings.GYM_NAME, "NUTRITION_ENABLED": settings.NUTRITION_ENABLED, "INVENTORY_ENABLED": settings.INVENTORY_ENABLED}
+    from .gym import gym
+
+    current = gym()
+    ctx = {"GYM_NAME": current.name, "GYM": current, "NUTRITION_ENABLED": settings.NUTRITION_ENABLED, "INVENTORY_ENABLED": settings.INVENTORY_ENABLED}
     user = getattr(request, "user", None)
     if user is not None and user.is_authenticated:
         from .models import Notification

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Audit log</h1><div class="text-muted">Sign-ins, account and permission changes, and financial and operational actions. Entries cannot be edited or deleted here.</div></div></div>
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-3">{% include "components/search_bar.html" with q=q placeholder="Search description, action or user" %}</div>
+  <div class="col-6 col-lg-2"><select name="user" class="form-select" aria-label="User"><option value="">Any user</option>{% for u in users %}<option value="{{ u.pk }}" {% if u.pk|stringformat:"s" == user_id %}selected{% endif %}>{{ u.username }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><select name="area" class="form-select" aria-label="Area"><option value="">Any area</option>{% for a in areas %}<option value="{{ a }}" {% if a == area %}selected{% endif %}>{{ a|capfirst }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+  <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+  <div class="col-lg-1 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading><i class="bi bi-funnel"></i></button>{% if filtered_on %}<a href="{% url 'core:audit_log' %}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+</form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>When</th><th>User</th><th>Action</th><th>Details</th></tr></thead><tbody>
+{% for a in object_list %}<tr><td class="text-nowrap">{{ a.created_at|date:"M j, Y H:i:s" }}</td><td>{{ a.user.username|default:"—" }}</td><td><span class="badge text-bg-light border">{{ a.action }}</span></td><td>{{ a.description }}</td></tr>
+{% empty %}<tr><td colspan="4">{% include "components/empty_state.html" with icon="journal-text" title="No entries" text="Try a wider date range or fewer filters." %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

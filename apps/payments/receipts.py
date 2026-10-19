@@ -2,6 +2,8 @@
 from io import BytesIO
 
 from django.conf import settings
+
+from apps.core.gym import gym
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A5
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -23,7 +25,8 @@ def receipt_data(payment):
         "item_kind": "Personal training" if payment.is_appointment else "Membership",
         "is_refund": payment.kind == Kind.REFUND,
         "is_valid": payment.status == Status.COMPLETED,
-        "gym_name": settings.GYM_NAME,
+        "gym_name": gym().name,
+        "gym": gym(),
         **balance_as_of(payment),
     }
 
@@ -37,7 +40,7 @@ def render_pdf(payment):
     p, m = payment, d["member"]
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A5, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=12 * mm, bottomMargin=12 * mm,
-                            title=f"{p.receipt_number}", author=settings.GYM_NAME)
+                            title=f"{p.receipt_number}", author=gym().name)
     styles = getSampleStyleSheet()
     title = ParagraphStyle("t", parent=styles["Title"], fontSize=17, alignment=0, spaceAfter=2)
     small = ParagraphStyle("s", parent=styles["Normal"], fontSize=8, textColor=colors.grey)
@@ -46,8 +49,10 @@ def render_pdf(payment):
     def para(text, style=body):
         return Paragraph(escape(str(text)), style)
 
+    contact = " · ".join(x for x in (d["gym"].address, d["gym"].phone, d["gym"].email) if x)
     story = [
         para(d["gym_name"], title),
+        *([para(contact, small)] if contact else []),
         para("REFUND RECEIPT" if d["is_refund"] else "PAYMENT RECEIPT", small),
         Spacer(1, 4 * mm),
     ]
@@ -82,5 +87,7 @@ def render_pdf(payment):
     if p.recorded_by:
         story.append(para(f"Recorded by {p.recorded_by.display_name} on {p.created_at:%d %b %Y %H:%M}", small))
     story.append(para("Balances are shown as at the time of this receipt.", small))
+    if d["gym"].receipt_footer:
+        story.append(para(d["gym"].receipt_footer, small))
     doc.build(story)
     return buf.getvalue()

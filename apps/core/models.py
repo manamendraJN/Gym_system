@@ -31,6 +31,25 @@ class ActivityLog(models.Model):
         return {"login": "box-arrow-in-right", "logout": "box-arrow-right"}.get(self.action, "activity")
 
 
+class GymSettings(models.Model):
+    """Single-row gym profile (see apps/core/gym.py)."""
+
+    name = models.CharField("gym name", max_length=100)
+    tagline = models.CharField(max_length=150, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    email = models.EmailField(blank=True)
+    receipt_footer = models.CharField(max_length=255, blank=True, help_text="Printed at the bottom of receipts, e.g. a thank-you or refund policy line.")
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "gym settings"
+
+    def __str__(self):
+        return self.name
+
+
 class Notification(models.Model):
     """In-app message for one user (appointment booked / changed / reminder ...)."""
 

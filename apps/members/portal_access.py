@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 
 from apps.accounts.forms import StyledPasswordResetForm
+from apps.core.gym import gym
 from apps.accounts.models import Role
 
 User = get_user_model()
@@ -33,7 +34,7 @@ def create_portal_login(member, request):
     member.save(update_fields=["user", "updated_at"])
     form = StyledPasswordResetForm({"email": member.email})
     if form.is_valid():
-        form.save(request=request, use_https=request.is_secure(), extra_email_context={"GYM_NAME": settings.GYM_NAME},
+        form.save(request=request, use_https=request.is_secure(), extra_email_context={"GYM_NAME": gym().name},
                   email_template_name="registration/password_reset_email.txt",
                   subject_template_name="registration/password_reset_subject.txt")
     return user

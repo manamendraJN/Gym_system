@@ -6,6 +6,8 @@ from decimal import Decimal
 from io import BytesIO, StringIO
 
 from django.conf import settings
+
+from apps.core.gym import gym
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
@@ -122,11 +124,11 @@ def to_pdf(report, rows):
 
     buf = BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), leftMargin=12 * mm, rightMargin=12 * mm, topMargin=12 * mm, bottomMargin=12 * mm,
-                            title=report.title, author=settings.GYM_NAME)
+                            title=report.title, author=gym().name)
     styles = getSampleStyleSheet()
     cell = ParagraphStyle("c", parent=styles["Normal"], fontSize=7.5, leading=9)
     head = ParagraphStyle("h", parent=cell, fontName="Helvetica-Bold", textColor=colors.white)
-    story = [Paragraph(escape(f"{settings.GYM_NAME} – {report.title}"), styles["Title"]),
+    story = [Paragraph(escape(f"{gym().name} – {report.title}"), styles["Title"]),
              Paragraph(escape(f"{report.period_label} · generated {timezone.localtime():%Y-%m-%d %H:%M}"), styles["Normal"]), Spacer(1, 4 * mm)]
     summary = report.summary()
     if summary:

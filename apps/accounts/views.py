@@ -12,6 +12,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views import View
 from django.views.generic import CreateView, ListView, UpdateView
 
+from apps.core.gym import gym
 from apps.core.models import ActivityLog
 
 from . import forms, throttle
@@ -61,7 +62,10 @@ class GymPasswordResetView(auth_views.PasswordResetView):
     email_template_name = "registration/password_reset_email.txt"
     subject_template_name = "registration/password_reset_subject.txt"
     form_class = forms.StyledPasswordResetForm
-    extra_email_context = {"GYM_NAME": settings.GYM_NAME}
+
+    @property
+    def extra_email_context(self):
+        return {"GYM_NAME": gym().name}
     success_url = reverse_lazy("accounts:password_reset_done")
 
 
