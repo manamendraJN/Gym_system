@@ -15,6 +15,9 @@ urlpatterns = [
     path("appointments/slots/", views.SlotsView.as_view(), name="slots"),
     path("appointments/<int:pk>/reschedule/", views.RescheduleView.as_view(), name="reschedule"),
     path("appointments/<int:pk>/cancel/", views.CancelView.as_view(), name="cancel"),
+    path("payments/", views.PaymentsView.as_view(), name="payments"),
+    path("payments/<int:pk>/receipt/", views.ReceiptView.as_view(), name="receipt"),
+    path("payments/<int:pk>/receipt.pdf", views.ReceiptPDFView.as_view(), name="receipt_pdf"),
     path("progress/", views.ProgressView.as_view(), name="progress"),
     path("nutrition/", views.NutritionView.as_view(), name="nutrition"),
 ]

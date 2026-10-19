@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}My payments{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My payments</h1></div>
+{% if owed %}<div class="alert alert-warning d-flex gap-2"><i class="bi bi-exclamation-triangle-fill mt-1"></i><div><strong>Balance to pay: {{ owed|lkr }}</strong><div class="small">Please pay at the front desk. Payments you make appear below once recorded.</div></div></div>
+{% else %}<div class="alert alert-success d-flex gap-2"><i class="bi bi-check-circle-fill mt-1"></i><div>You have nothing outstanding.</div></div>{% endif %}
+<div class="row g-4"><div class="col-lg-5">
+  <div class="card mb-4"><div class="card-header">Memberships</div><ul class="list-group list-group-flush">
+    {% for m in memberships %}<li class="list-group-item"><div class="d-flex justify-content-between"><strong>{{ m.plan.name }}</strong>{% include "components/status_badge.html" with key=m.payment_status label=m.payment_status|payment_status %}</div>
+      <div class="small text-muted">{{ m.start_date|date:"M j" }} – {{ m.end_date|date:"M j, Y" }}</div>
+      <div class="small">Due {{ m.amount_due|lkr }} · paid {{ m.net_paid|lkr }}{% if m.outstanding %} · <span class="text-danger fw-semibold">owing {{ m.outstanding|lkr }}</span>{% endif %}</div></li>
+    {% empty %}<li class="list-group-item text-muted">No memberships yet.</li>{% endfor %}</ul></div>
+  {% if sessions %}<div class="card"><div class="card-header">Training sessions</div><ul class="list-group list-group-flush">
+    {% for a in sessions %}<li class="list-group-item"><div class="d-flex justify-content-between"><strong>{{ a.trainer.full_name }}</strong>{% include "components/status_badge.html" with key=a.payment_status label=a.payment_status|payment_status %}</div>
+      <div class="small text-muted">{{ a.start|date:"M j, Y H:i" }}</div><div class="small">Fee {{ a.amount_due|lkr }} · paid {{ a.net_paid|lkr }}{% if a.outstanding %} · <span class="text-danger fw-semibold">owing {{ a.outstanding|lkr }}</span>{% endif %}</div></li>{% endfor %}</ul></div>{% endif %}
+</div><div class="col-lg-7"><div class="card"><div class="card-header">Payment history</div>
+  {% if payments %}<div class="table-responsive"><table class="table mb-0"><thead><tr><th>Receipt</th><th>Date</th><th>For</th><th class="text-end">Amount</th><th>Status</th></tr></thead><tbody>
+    {% for p in payments %}<tr><td><a href="{% url 'portal:receipt' p.pk %}">{{ p.receipt_number }}</a></td><td class="text-nowrap">{{ p.paid_on|date:"M j, Y" }}</td><td>{{ p.item_label }}</td>
+      <td class="text-end text-nowrap {% if p.kind == 'refund' %}text-danger{% endif %}">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|lkr }}</td>
+      <td>{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="wallet2" title="No payments yet" %}</div>{% endif %}</div></div></div>
+{% endblock %}

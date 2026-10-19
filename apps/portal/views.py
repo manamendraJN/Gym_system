@@ -278,3 +278,55 @@ class NutritionView(_NutritionMixin, FormView):
         profile.save()
         messages.success(self.request, "Your nutrition profile was saved.")
         return redirect("portal:nutrition")
+
+
+# ------------------------------------------------------------------------------------------- payments
+class PaymentsView(PortalMixin, TemplateView):
+    """The member's own fees, balances and payment history (never another member's)."""
+
+    template_name = "portal/payments.html"
+
+    def get_context_data(self, **kwargs):
+        from apps.payments.billing import with_billing
+        from apps.payments.models import Kind, Status
+
+        memberships = with_billing(self.member.memberships.exclude(status="cancelled").select_related("plan"), "price").order_by("-start_date")
+        sessions = with_billing(self.member.appointments.exclude(status="cancelled").filter(fee__gt=0).select_related("trainer"), "fee").order_by("-start")
+        payments = self.member.payments.exclude(kind=Kind.ADJUSTMENT).exclude(status__in=[Status.FAILED, Status.VOIDED]).select_related(
+            "membership__plan", "appointment__trainer")
+        owed = sum((m.outstanding for m in memberships), 0) + sum((a.outstanding for a in sessions), 0)
+        return super().get_context_data(memberships=memberships, sessions=sessions, payments=payments[:50], owed=owed, **kwargs)
+
+
+class _MyPaymentMixin(PortalMixin):
+    @cached_property
+    def payment(self):
+        from apps.payments.models import Kind, Payment
+
+        qs = Payment.objects.filter(member=self.member).exclude(kind=Kind.ADJUSTMENT).select_related(
+            "member", "membership__plan", "appointment__trainer", "recorded_by", "refund_of")
+        return get_object_or_404(qs, pk=self.kwargs["pk"])
+
+
+class ReceiptView(_MyPaymentMixin, TemplateView):
+    template_name = "payments/receipt.html"
+
+    def get_context_data(self, **kwargs):
+        from apps.payments import receipts
+
+        # receipt_data already carries `member` (this member), so bypass PortalMixin's own `member` entry
+        return TemplateView.get_context_data(self, **receipts.receipt_data(self.payment), portal=True, **kwargs)
+
+
+class ReceiptPDFView(_MyPaymentMixin, View):
+    http_method_names = ["get"]
+
+    def get(self, request, pk):
+        from django.http import HttpResponse
+
+        from apps.payments import receipts
+
+        response = HttpResponse(receipts.render_pdf(self.payment), content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{self.payment.receipt_number}.pdf"'
+        response["Cache-Control"] = "private, no-store"
+        return response
