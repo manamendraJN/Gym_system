@@ -41,9 +41,31 @@
     }, 6000);
   });
 
-  // Confirm dialogs: <form data-confirm="Are you sure?">
+  // Confirmation dialogs: <form data-confirm="Are you sure?">. Uses a Bootstrap modal, or window.confirm if Bootstrap is unavailable.
+  var modalEl = document.getElementById("confirmModal");
+  var pending = null;
   document.addEventListener("submit", function (event) {
-    var msg = event.target.dataset && event.target.dataset.confirm;
-    if (msg && !window.confirm(msg)) event.preventDefault();
+    var form = event.target;
+    var msg = form.dataset && form.dataset.confirm;
+    if (!msg || form._confirmed) return;
+    event.preventDefault();
+    if (!(modalEl && window.bootstrap)) {
+      if (window.confirm(msg)) { form._confirmed = true; form.requestSubmit(); }
+      return;
+    }
+    pending = form;
+    document.getElementById("confirmBody").textContent = msg;
+    var ok = document.getElementById("confirmOk");
+    var danger = !!form.querySelector(".btn-danger, .btn-outline-danger");
+    ok.className = "btn " + (danger ? "btn-danger" : "btn-primary");
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
   }, true);
+  if (modalEl) {
+    document.getElementById("confirmOk").addEventListener("click", function () {
+      var form = pending; pending = null;
+      bootstrap.Modal.getInstance(modalEl).hide();
+      if (form) { form._confirmed = true; form.requestSubmit(); }
+    });
+    modalEl.addEventListener("hidden.bs.modal", function () { pending = null; });
+  }
 })();
