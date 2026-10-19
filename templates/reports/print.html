@@ -1,0 +1,7 @@
+{% load gym %}<!doctype html><html lang="en"><head><meta charset="utf-8"><title>{{ report.title }}</title>
+<style>body{font-family:Arial,sans-serif;font-size:12px;margin:24px;color:#111}h1{font-size:20px;margin:0}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}th{background:#eee}.r{text-align:right}.sum td{border:0;padding:2px 12px 2px 0}.muted{color:#666}@media print{.noprint{display:none}}</style></head>
+<body onload="window.print()"><p class="noprint"><a href="javascript:window.print()">Print</a> · <a href="javascript:window.close()">Close</a></p>
+<h1>{{ GYM_NAME }} – {{ report.title }}</h1><div class="muted">{{ report.period_label }} · {{ total_rows }} row{{ total_rows|pluralize }}</div>
+{% if summary %}<table class="sum" style="width:auto;margin-top:8px">{% for label, value, kind in summary %}<tr><td>{{ label }}</td><td><strong>{{ value|report_cell:kind }}</strong></td></tr>{% endfor %}</table>{% endif %}
+<table><thead><tr>{% for c in report.columns %}<th class="{% if c.kind == 'money' or c.kind == 'int' or c.kind == 'percent' %}r{% endif %}">{{ c.label }}</th>{% endfor %}</tr></thead><tbody>
+{% for row in rows %}<tr>{% for c in report.columns %}<td class="{% if c.kind == 'money' or c.kind == 'int' or c.kind == 'percent' %}r{% endif %}">{{ row|get_item:c.key|report_cell:c.kind }}</td>{% endfor %}</tr>{% empty %}<tr><td colspan="{{ report.columns|length }}">No records.</td></tr>{% endfor %}</tbody></table></body></html>
