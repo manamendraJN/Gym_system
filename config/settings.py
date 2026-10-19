@@ -89,6 +89,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Behind a reverse proxy that overwrites X-Forwarded-For, set this so throttling / audit see the real client address.
+USE_X_FORWARDED_FOR = env_bool("USE_X_FORWARDED_FOR", False)
+
 # --- Database: SQLite for local development, PostgreSQL for production ---
 if os.environ.get("DB_ENGINE", "sqlite").lower() in {"postgresql", "postgres"}:
     DATABASES = {
@@ -100,17 +103,25 @@ if os.environ.get("DB_ENGINE", "sqlite").lower() in {"postgresql", "postgres"}:
             "HOST": os.environ.get("DB_HOST", "localhost"),
             "PORT": os.environ.get("DB_PORT", "5432"),
             "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": {"sslmode": os.environ["DB_SSLMODE"]} if os.environ.get("DB_SSLMODE") else {},
         }
     }
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": os.environ.get("SQLITE_PATH") or BASE_DIR / "db.sqlite3",
         }
     }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Cache (login throttling, etc.). Use Redis in production so all worker processes share counters. ---
+if os.environ.get("REDIS_URL"):
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.redis.RedisCache", "LOCATION": os.environ["REDIS_URL"]}}
+else:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 # --- Authentication ---
 AUTH_USER_MODEL = "accounts.User"
@@ -217,6 +228,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # Message tags map onto Bootstrap alert classes.
@@ -229,3 +241,13 @@ import sys  # noqa: E402
 
 if "test" in sys.argv[1:2]:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# --- Logging: to the console (captured by systemd / Docker); never includes request bodies or passwords ---
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
+    "root": {"handlers": ["console"], "level": os.environ.get("LOG_LEVEL", "INFO")},
+    "loggers": {"django.security": {"handlers": ["console"], "level": "WARNING", "propagate": False}},
+}
