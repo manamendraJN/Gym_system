@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{# Every block below is shown only to roles holding the matching permission (e.g. trainers never see revenue). #}
+{% include "announcements/_banner.html" %}
+<div class="page-header">
+  <div><h1>Welcome back, {{ request.user.first_name|default:request.user.username }}</h1>
+    <div class="text-muted">{% now "l, F j, Y" %}</div></div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if request.user|can:"attendance.manage" %}<a href="{% url 'attendance:desk' %}" class="btn btn-primary"><i class="bi bi-box-arrow-in-right me-1"></i>Check-in desk</a>{% endif %}
+    {% if request.user|can:"appointments.manage" %}<a href="{% url 'appointments:book' %}" class="btn btn-outline-secondary"><i class="bi bi-calendar-plus me-1"></i>Book session</a>{% endif %}
+    {% if request.user|can:"members.manage" %}<a href="{% url 'members:create' %}" class="btn btn-outline-secondary"><i class="bi bi-person-plus me-1"></i>Register member</a>{% endif %}
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% if request.user|can:"members.view" and request.user.role != "trainer" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Total members" value=stats.total_members icon="people" tone="blue" %}</div>
+  {% endif %}
+  {% if request.user|can:"memberships.view" and request.user.role != "trainer" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Active members" value=stats.active_members icon="person-check" tone="green" %}</div>
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Expired memberships" value=stats.expired_members icon="person-x" tone="red" %}</div>
+  {% endif %}
+  {% if request.user|can:"members.view" and request.user.role != "trainer" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="New members this month" value=stats.new_members icon="person-plus" tone="purple" %}</div>
+  {% endif %}
+  {% if request.user|can:"attendance.view" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Today's attendance" value=stats.todays_attendance icon="calendar-check" tone="orange" sub=inside_now|stringformat:"d"|add:" in the gym now" %}</div>
+  {% endif %}
+  {% if request.user|can:"payments.view" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Revenue collected today" value=stats.todays_revenue|lkr icon="cash-coin" tone="green" sub="Payments received minus refunds" %}</div>
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Revenue collected this month" value=stats.monthly_revenue|lkr icon="graph-up-arrow" tone="blue" sub="Payments received minus refunds" %}</div>
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Outstanding (unpaid fees)" value=stats.outstanding|lkr icon="receipt" tone="amber" sub="Owed by members – not revenue yet" %}</div>
+  {% endif %}
+  {% if request.user|can:"trainers.view" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Active trainers" value=training.total_trainers icon="person-badge" tone="purple" %}</div>
+  {% endif %}
+  {% if request.user|can:"appointments.view" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Upcoming sessions" value=training.upcoming_appointments icon="calendar-event" tone="blue" sub=scope_note %}</div>
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Completed sessions" value=training.completed_sessions icon="check2-circle" tone="green" sub=scope_note %}</div>
+  {% endif %}
+  {% if request.user|can:"workouts.view" %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Active workout plans" value=training.plans_assigned icon="clipboard-check" tone="orange" sub=scope_note %}</div>
+  {% endif %}
+</div>
+
+{% if request.user|can:"payments.view" or request.user|can:"attendance.view" %}
+<div class="row g-3 mb-4">
+  {% if request.user|can:"payments.view" %}
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-header">Revenue collected – last 6 months</div><div class="card-body">
+      {% if revenue_chart.labels %}<div class="chart-box"><canvas id="revenueChart"></canvas></div>
+      {% else %}{% include "components/empty_state.html" with icon="bar-chart" title="No revenue data yet" text="Revenue appears here once payments are recorded." %}{% endif %}
+    </div></div>
+  </div>
+  {% endif %}
+  {% if request.user|can:"attendance.view" %}
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header">Attendance – last 7 days</div><div class="card-body">
+      <div class="chart-box"><canvas id="attendanceChart"></canvas></div>
+    </div></div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if request.user|can:"payments.view" %}
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-header d-flex justify-content-between">Recent payments
+      <a href="{% url 'payments:list' %}" class="small fw-normal">View all</a></div>
+      {% if recent_payments %}
+      <div class="table-responsive"><table class="table mb-0">
+        <thead><tr><th>Receipt</th><th>Member</th><th>Date</th><th class="text-end">Amount</th><th>Status</th></tr></thead><tbody>
+        {% for p in recent_payments %}<tr>
+          <td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td>
+          <td>{{ p.member.full_name }}</td><td class="text-nowrap">{{ p.paid_on|date:"M j" }}</td>
+          <td class="text-end text-nowrap {% if p.kind == 'refund' %}text-danger{% endif %}">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|lkr }}</td>
+          <td>{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</td></tr>{% endfor %}
+        </tbody></table></div>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="cash-coin" title="No payments yet" %}</div>{% endif %}
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header d-flex justify-content-between">Membership payment status
+      <a href="{% url 'payments:outstanding' %}" class="small fw-normal">Outstanding</a></div>
+      <div class="card-body">
+        <p class="text-muted small">Current and upcoming memberships.</p>
+        {% for row in payment_breakdown %}
+          <div class="d-flex justify-content-between border-bottom py-2"><span>{% include "components/status_badge.html" with key=row.key label=row.label %}</span><strong>{{ row.count }}</strong></div>
+        {% endfor %}
+        <div class="d-flex justify-content-between pt-3"><span class="text-muted">Awaiting confirmation</span><strong>{{ pending_total|lkr }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if request.user|can:"memberships.view" and request.user.role != "trainer" or request.user|can:"users.view" %}
+<div class="row g-3 mb-4">
+  {% if request.user|can:"memberships.view" and request.user.role != "trainer" %}
+  <div class="col-lg-7">
+    <div class="card h-100"><div class="card-header d-flex justify-content-between">Upcoming membership expirations <small class="fw-normal">(next {{ expiry_window }} days) · <a href="{% url 'memberships:expiring' %}">View all</a></small></div>
+      {% if upcoming_expirations %}
+        <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Member</th><th>Plan</th><th>Expires</th></tr></thead><tbody>
+          {% for m in upcoming_expirations %}<tr><td><a href="{{ m.member.get_absolute_url }}">{{ m.member.full_name }}</a></td><td>{{ m.plan.name }}</td><td>{{ m.end_date|date:"M j, Y" }} <small class="text-muted">({{ m.days_remaining }}d)</small></td></tr>{% endfor %}
+        </tbody></table></div>
+      {% else %}
+        <div class="card-body">{% include "components/empty_state.html" with icon="check2-circle" title="No upcoming expirations" text="No active membership is about to expire." %}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% if request.user|can:"users.view" %}
+  <div class="col-lg-5">
+    <div class="card h-100"><div class="card-header">Recent activities</div><div class="card-body py-2">
+      {% for a in recent_activities %}
+        <div class="activity-item"><i class="bi bi-{{ a.icon }}"></i>
+          <div class="lh-sm"><div><strong>{{ a.user.display_name|default:"System" }}</strong> · {{ a.description }}</div>
+          <small class="text-muted">{{ a.created_at|timesince }} ago</small></div></div>
+      {% empty %}
+        {% include "components/empty_state.html" with icon="activity" title="No activity yet" %}
+      {% endfor %}
+    </div></div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if expense_stats or equipment or inventory %}
+<h2 class="h5 mt-2 mb-3">Facility &amp; finance</h2>
+<div class="row g-3 mb-4">
+  {% if expense_stats %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Expenses this month" value=expense_stats.month|lkr icon="receipt-cutoff" tone="red" sub="Operating costs, void entries excluded" %}</div>
+  {% if expense_stats.trend %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Est. operating profit (month)" value=expense_stats.profit|lkr icon="piggy-bank" tone="green" sub="Revenue collected − expenses (cash basis)" %}</div>
+  {% endif %}
+  {% endif %}
+  {% if equipment %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Equipment needing attention" value=equipment.due_count icon="tools" tone="amber" sub="Maintenance due within 14 days / overdue" %}</div>
+  {% endif %}
+  {% if inventory %}
+  <div class="col-sm-6 col-xl-3">{% include "components/stat_card.html" with label="Low-stock items" value=inventory.low_count icon="boxes" tone="red" sub="At or below minimum stock" %}</div>
+  {% endif %}
+</div>
+<div class="row g-3 mb-4">
+  {% if expense_stats.trend %}<div class="col-lg-7"><div class="card h-100"><div class="card-header">Revenue vs expenses – last 6 months</div><div class="card-body"><div class="chart-box"><canvas id="revExpChart"></canvas></div></div></div></div>{% endif %}
+  {% if expense_stats and expense_stats.chart.labels %}<div class="col-lg-5"><div class="card h-100"><div class="card-header">Expenses by category (this month)</div><div class="card-body"><div class="chart-box"><canvas id="expenseCatChart"></canvas></div></div></div></div>{% endif %}
+  {% if equipment %}<div class="col-lg-4"><div class="card h-100"><div class="card-header d-flex justify-content-between">Equipment status <a href="{% url 'equipment:list' %}" class="small fw-normal">View</a></div><div class="card-body"><div class="chart-box"><canvas id="equipmentChart"></canvas></div></div></div></div>
+  <div class="col-lg-4"><div class="card h-100"><div class="card-header">Maintenance due soon</div><ul class="list-group list-group-flush">
+    {% for e in equipment.due %}<li class="list-group-item d-flex justify-content-between"><a href="{{ e.get_absolute_url }}">{{ e.code }} {{ e.name }}</a><span class="{% if e.maintenance_state == 'overdue' %}text-danger fw-semibold{% endif %}">{{ e.next_maintenance_date|date:"M j" }}</span></li>
+    {% empty %}<li class="list-group-item text-muted">Nothing due.</li>{% endfor %}</ul></div></div>{% endif %}
+  {% if inventory %}<div class="col-lg-4"><div class="card h-100"><div class="card-header d-flex justify-content-between">Low stock <a href="{% url 'inventory:list' %}?stock=low" class="small fw-normal">View</a></div><ul class="list-group list-group-flush">
+    {% for i in inventory.low %}<li class="list-group-item d-flex justify-content-between"><a href="{{ i.get_absolute_url }}">{{ i.name }}</a><span class="text-danger">{{ i.quantity }} / {{ i.min_stock }}</span></li>
+    {% empty %}<li class="list-group-item text-muted">Stock levels are healthy.</li>{% endfor %}</ul></div></div>{% endif %}
+</div>
+{% endif %}
+
+{% if request.user|can:"users.view" %}
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="card"><div class="card-header">Active accounts by role</div><div class="card-body">
+      {% if role_chart.labels %}<div class="chart-box"><canvas id="roleChart"></canvas></div>
+      {% else %}{% include "components/empty_state.html" with icon="pie-chart" title="No accounts yet" %}{% endif %}
+    </div></div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ role_chart|json_script:"role-chart-data" }}
+{{ revenue_chart|json_script:"revenue-chart-data" }}
+{{ attendance_chart|json_script:"attendance-chart-data" }}
+{% if expense_stats %}{{ expense_stats.chart|json_script:"expense-cat-data" }}{{ expense_stats.trend|json_script:"rev-exp-data" }}{% endif %}
+{% if equipment %}{{ equipment.counts|json_script:"equipment-data" }}{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var palette = ["#ff5a1f", "#12151c", "#2563eb", "#198754", "#7c3aed", "#b7791f"];
+  function data(id) { return JSON.parse(document.getElementById(id).textContent); }
+  var role = data("role-chart-data"), rev = data("revenue-chart-data"), att = data("attendance-chart-data");
+  var roleEl = document.getElementById("roleChart");
+  if (roleEl && role.labels.length) {
+    new Chart(roleEl, { type: "doughnut",
+      data: { labels: role.labels, datasets: [{ data: role.values, backgroundColor: palette, borderWidth: 0 }] },
+      options: { maintainAspectRatio: false, cutout: "65%", plugins: { legend: { position: "bottom" } } } });
+  }
+  var revEl = document.getElementById("revenueChart");
+  if (revEl && rev.labels.length) {
+    new Chart(revEl, { type: "bar",
+      data: { labels: rev.labels, datasets: [{ label: "Revenue (LKR)", data: rev.values, backgroundColor: "#ff5a1f", borderRadius: 6 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+  }
+  function maybe(id) { var el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; }
+  var expCat = maybe("expense-cat-data"), revExp = maybe("rev-exp-data"), eq = maybe("equipment-data");
+  var catEl = document.getElementById("expenseCatChart");
+  if (catEl && expCat && expCat.labels.length) new Chart(catEl, { type: "doughnut", data: { labels: expCat.labels, datasets: [{ data: expCat.values, backgroundColor: palette, borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom" } } } });
+  var reEl = document.getElementById("revExpChart");
+  if (reEl && revExp) new Chart(reEl, { type: "bar", data: { labels: revExp.labels, datasets: [{ label: "Revenue", data: revExp.revenue, backgroundColor: "#198754", borderRadius: 4 }, { label: "Expenses", data: revExp.expenses, backgroundColor: "#dc3545", borderRadius: 4 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+  var eqEl = document.getElementById("equipmentChart");
+  if (eqEl && eq) new Chart(eqEl, { type: "doughnut", data: { labels: eq.map(function (c) { return c.label; }), datasets: [{ data: eq.map(function (c) { return c.n; }), backgroundColor: ["#198754", "#2563eb", "#b7791f", "#dc3545"], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom" } } } });
+  var attEl = document.getElementById("attendanceChart");
+  if (attEl) {
+    new Chart(attEl, { type: "bar",
+      data: { labels: att.labels, datasets: [{ label: "Check-ins", data: att.values, backgroundColor: "#12151c", borderRadius: 6 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
+  }
+})();
+</script>
+{% endblock %}

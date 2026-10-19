@@ -1,0 +1,6 @@
+{# Usage: {% include "components/empty_state.html" with icon="people" title="No users" text="..." %} #}
+<div class="empty-state">
+  <i class="bi bi-{{ icon|default:'inbox' }}"></i>
+  <h6>{{ title|default:"Nothing here yet" }}</h6>
+  {% if text %}<p class="text-muted mb-0">{{ text }}</p>{% endif %}
+</div>

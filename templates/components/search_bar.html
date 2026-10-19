@@ -1,0 +1,5 @@
+{# Usage: {% include "components/search_bar.html" with q=q placeholder="Search…" %}; extra filters go in the including template's own form. #}
+<div class="input-group">
+  <span class="input-group-text bg-transparent"><i class="bi bi-search"></i></span>
+  <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="{{ placeholder|default:'Search…' }}" aria-label="Search">
+</div>

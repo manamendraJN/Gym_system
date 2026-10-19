@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Notifications</h1>
+  <form method="post" action="{% url 'core:notifications_read_all' %}" data-no-loading>{% csrf_token %}<button class="btn btn-outline-secondary" data-no-loading><i class="bi bi-check2-all me-1"></i>Mark all as read</button></form></div>
+<div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+  <a class="btn btn-sm {% if not unread_only %}btn-dark{% else %}btn-outline-secondary{% endif %}" href="?{% if kind %}kind={{ kind }}{% endif %}">All</a>
+  <a class="btn btn-sm {% if unread_only %}btn-dark{% else %}btn-outline-secondary{% endif %}" href="?unread=1{% if kind %}&kind={{ kind }}{% endif %}">Unread</a>
+  <form method="get" class="d-flex gap-2 ms-2" data-no-loading>{% if unread_only %}<input type="hidden" name="unread" value="1">{% endif %}
+    <select name="kind" class="form-select form-select-sm" aria-label="Type" onchange="this.form.submit()"><option value="">All types</option>{% for k in kinds %}<option value="{{ k }}" {% if k == kind %}selected{% endif %}>{{ k|cut:"-"|capfirst }}</option>{% endfor %}</select></form>
+  <a class="btn btn-sm btn-link ms-auto" href="{% url 'notifications:preferences' %}"><i class="bi bi-sliders me-1"></i>Preferences</a>
+  {% if request.user|can:"notifications.configure" %}<a class="btn btn-sm btn-link" href="{% url 'notifications:settings' %}"><i class="bi bi-gear me-1"></i>Settings</a>{% endif %}</div>
+<div class="card"><ul class="list-group list-group-flush">
+{% for n in object_list %}<li class="list-group-item d-flex justify-content-between align-items-start gap-3 {% if not n.read_at %}bg-light{% endif %}">
+  <div><div class="fw-semibold">{% if not n.read_at %}<span class="badge text-bg-primary me-1">New</span>{% endif %}{{ n.title }}</div><div>{{ n.message }}</div><small class="text-muted">{{ n.created_at|timesince }} ago · in-app: generated</small>
+    {% for d in n.deliveries.all %}<div class="small"><span class="badge text-bg-{% if d.status == 'delivered' %}success{% elif d.status == 'sent' %}info{% elif d.status == 'failed' %}danger{% else %}secondary{% endif %}">{{ d.get_channel_display }}: {{ d.get_status_display }}</span> <span class="text-muted">{{ d.detail }}</span></div>{% endfor %}</div>
+  <div class="d-flex gap-2 text-nowrap">{% if n.url %}<form method="post" action="{% url 'core:notification_read' n.pk %}" data-no-loading>{% csrf_token %}<input type="hidden" name="next" value="{{ n.url }}"><button class="btn btn-sm btn-outline-secondary" data-no-loading>Open</button></form>{% endif %}
+  {% if not n.read_at %}<form method="post" action="{% url 'core:notification_read' n.pk %}" data-no-loading>{% csrf_token %}<button class="btn btn-sm btn-link" data-no-loading>Mark read</button></form>{% endif %}</div></li>
+{% empty %}<li class="list-group-item">{% include "components/empty_state.html" with icon="bell" title="No notifications" %}</li>{% endfor %}</ul></div>
+{% include "components/pagination.html" %}
+{% endblock %}

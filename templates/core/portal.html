@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}My account{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Hello, {{ request.user.first_name|default:request.user.username }}</h1></div>
+<div class="row g-3">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">My information</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><strong>{{ request.user.display_name }}</strong></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ request.user.email }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ request.user.phone|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Role</span><span class="badge text-bg-dark">{{ request.user.get_role_display }}</span></li>
+      </ul>
+      <div class="card-body"><a href="{% url 'accounts:profile' %}" class="btn btn-primary btn-sm">Edit profile</a>
+        <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary btn-sm">Change password</a></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-header">Membership</div><div class="card-body">
+      {% include "components/empty_state.html" with icon="card-checklist" title="Membership details coming soon" text="Your plan, payments and attendance will appear here once those modules are available." %}
+    </div></div>
+  </div>
+</div>
+{% endblock %}

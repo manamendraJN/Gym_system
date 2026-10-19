@@ -1,0 +1,2 @@
+{# Usage: {% include "components/sort_th.html" with col=columns.0 %} #}
+<th scope="col"><a href="{{ col.url }}" class="text-decoration-none text-reset">{{ col.label }}{% if col.active %} <i class="bi bi-caret-{% if col.dir == 'asc' %}up{% else %}down{% endif %}-fill small"></i>{% endif %}</a></th>

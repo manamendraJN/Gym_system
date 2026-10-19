@@ -1,0 +1,14 @@
+{# Usage: include with label, value (None = not available), icon, tone, note (shown when value is None), sub (small caption), prefix #}
+<div class="stat-card tone-{{ tone|default:'orange' }}">
+  <div class="stat-icon"><i class="bi bi-{{ icon }}"></i></div>
+  <div class="stat-body">
+    <div class="stat-label">{{ label }}</div>
+    {% if value is None %}
+      <div class="stat-value stat-na" title="{{ note }}">—</div>
+      <div class="stat-note">{{ note }}</div>
+    {% else %}
+      <div class="stat-value">{{ prefix }}{{ value }}</div>
+      {% if sub %}<div class="stat-note">{{ sub }}</div>{% endif %}
+    {% endif %}
+  </div>
+</div>

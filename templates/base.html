@@ -1,0 +1,160 @@
+{% load static gym %}<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · {{ GYM_NAME }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{% static 'css/app.css' %}" rel="stylesheet">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    <a class="sidebar-brand" href="{% url 'core:home' %}"><i class="bi bi-lightning-charge-fill"></i><span>{{ GYM_NAME }}</span></a>
+    <nav class="sidebar-nav">
+      {% with url_name=request.resolver_match.view_name %}
+      {% if request.user.role == "member" %}
+        <a class="nav-item-link {% if url_name == 'portal:home' %}active{% endif %}" href="{% url 'portal:home' %}"><i class="bi bi-house"></i>My account</a>
+        <a class="nav-item-link {% if url_name == 'portal:trainers' %}active{% endif %}" href="{% url 'portal:trainers' %}"><i class="bi bi-person-badge"></i>My trainers</a>
+        <a class="nav-item-link {% if 'portal:workout' in url_name %}active{% endif %}" href="{% url 'portal:workouts' %}"><i class="bi bi-clipboard-check"></i>My workouts</a>
+        <a class="nav-item-link {% if 'portal:appointments' in url_name or url_name == 'portal:book' or url_name == 'portal:reschedule' or url_name == 'portal:cancel' %}active{% endif %}" href="{% url 'portal:appointments' %}"><i class="bi bi-calendar-event"></i>My sessions</a>
+        <a class="nav-item-link {% if url_name == 'portal:progress' %}active{% endif %}" href="{% url 'portal:progress' %}"><i class="bi bi-graph-up"></i>My progress</a>
+        {% if NUTRITION_ENABLED %}<a class="nav-item-link {% if url_name == 'portal:nutrition' %}active{% endif %}" href="{% url 'portal:nutrition' %}"><i class="bi bi-egg-fried"></i>My nutrition</a>{% endif %}
+      {% elif request.user|can:"dashboard.view" %}
+        <a class="nav-item-link {% if url_name == 'core:home' %}active{% endif %}" href="{% url 'core:home' %}"><i class="bi bi-speedometer2"></i>Dashboard</a>
+      {% else %}
+        <a class="nav-item-link {% if url_name == 'core:home' %}active{% endif %}" href="{% url 'core:home' %}"><i class="bi bi-house"></i>My account</a>
+      {% endif %}
+      {% if request.user|can:"members.view" %}
+        <div class="nav-heading">Gym</div>
+        <a class="nav-item-link {% if url_name|slice:":8" == 'members:' %}active{% endif %}" href="{% url 'members:list' %}"><i class="bi bi-people-fill"></i>Members</a>
+      {% endif %}
+      {% if request.user|can:"memberships.view" %}
+        <a class="nav-item-link {% if url_name == 'memberships:list' or url_name == 'memberships:detail' %}active{% endif %}" href="{% url 'memberships:list' %}"><i class="bi bi-card-checklist"></i>Memberships</a>
+        <a class="nav-item-link {% if url_name == 'memberships:expiring' %}active{% endif %}" href="{% url 'memberships:expiring' %}"><i class="bi bi-hourglass-split"></i>Expiring soon</a>
+        <a class="nav-item-link {% if url_name == 'memberships:expired' %}active{% endif %}" href="{% url 'memberships:expired' %}"><i class="bi bi-calendar-x"></i>Expired</a>
+      {% endif %}
+      {% if request.user|can:"plans.view" %}
+        <a class="nav-item-link {% if 'plan_' in url_name %}active{% endif %}" href="{% url 'memberships:plan_list' %}"><i class="bi bi-tags"></i>Membership plans</a>
+      {% endif %}
+      {% if request.user|can:"attendance.view" %}
+        <div class="nav-heading">Operations</div>
+        <a class="nav-item-link {% if url_name == 'attendance:desk' or url_name == 'attendance:scan' %}active{% endif %}" href="{% url 'attendance:desk' %}"><i class="bi bi-box-arrow-in-right"></i>Check-in desk</a>
+        <a class="nav-item-link {% if url_name == 'attendance:history' or url_name == 'attendance:member_history' %}active{% endif %}" href="{% url 'attendance:history' %}"><i class="bi bi-clock-history"></i>Attendance history</a>
+        <a class="nav-item-link {% if url_name == 'attendance:report' %}active{% endif %}" href="{% url 'attendance:report' %}"><i class="bi bi-bar-chart"></i>Daily report</a>
+      {% endif %}
+      {% if request.user|can:"payments.view" %}
+        {% if not request.user|can:"attendance.view" %}<div class="nav-heading">Operations</div>{% endif %}
+        <a class="nav-item-link {% if url_name == 'payments:list' or url_name == 'payments:detail' or url_name == 'payments:receipt' %}active{% endif %}" href="{% url 'payments:list' %}"><i class="bi bi-cash-stack"></i>Payments</a>
+        <a class="nav-item-link {% if url_name == 'payments:outstanding' %}active{% endif %}" href="{% url 'payments:outstanding' %}"><i class="bi bi-receipt"></i>Outstanding</a>
+      {% endif %}
+      {% if request.user|can:"trainers.view" or request.user|can:"appointments.view" or request.user|can:"workouts.view" or request.user|can:"progress.view" %}
+        <div class="nav-heading">Training</div>
+      {% endif %}
+      {% if request.user|can:"trainers.view" %}
+        <a class="nav-item-link {% if url_name == 'trainers:list' or url_name == 'trainers:detail' or url_name == 'trainers:assign' %}active{% endif %}" href="{% url 'trainers:list' %}"><i class="bi bi-person-badge"></i>Trainers</a>
+        {% if request.user.role == "trainer" %}<a class="nav-item-link {% if url_name == 'trainers:my_members' %}active{% endif %}" href="{% url 'trainers:my_members' %}"><i class="bi bi-people"></i>My members</a>{% endif %}
+      {% endif %}
+      {% if request.user|can:"appointments.view" %}
+        <a class="nav-item-link {% if 'appointments:' in url_name %}active{% endif %}" href="{% url 'appointments:list' %}"><i class="bi bi-calendar-event"></i>Appointments</a>
+      {% endif %}
+      {% if request.user|can:"workouts.view" %}
+        <a class="nav-item-link {% if 'workouts:plan' in url_name or 'workouts:item' in url_name %}active{% endif %}" href="{% url 'workouts:plan_list' %}"><i class="bi bi-clipboard-check"></i>Workout plans</a>
+        <a class="nav-item-link {% if 'workouts:exercise' in url_name %}active{% endif %}" href="{% url 'workouts:exercise_list' %}"><i class="bi bi-collection"></i>Exercises</a>
+      {% endif %}
+      {% if request.user|can:"progress.view" %}
+        <a class="nav-item-link {% if 'progress:' in url_name %}active{% endif %}" href="{% url 'progress:list' %}"><i class="bi bi-graph-up"></i>Fitness progress</a>
+      {% endif %}
+      {% if NUTRITION_ENABLED and request.user|can:"nutrition.view" %}
+        <a class="nav-item-link {% if 'nutrition:' in url_name %}active{% endif %}" href="{% url 'nutrition:plan_list' %}"><i class="bi bi-egg-fried"></i>Meal plans</a>
+      {% endif %}
+      {% if request.user|can:"equipment.view" or request.user|can:"inventory.view" and INVENTORY_ENABLED or request.user|can:"expenses.view" or request.user|can:"suppliers.view" %}
+        <div class="nav-heading">Facility &amp; finance</div>
+      {% endif %}
+      {% if request.user|can:"equipment.view" %}
+        <a class="nav-item-link {% if 'equipment:' in url_name %}active{% endif %}" href="{% url 'equipment:list' %}"><i class="bi bi-tools"></i>Equipment</a>
+      {% endif %}
+      {% if INVENTORY_ENABLED and request.user|can:"inventory.view" %}
+        <a class="nav-item-link {% if 'inventory:' in url_name %}active{% endif %}" href="{% url 'inventory:list' %}"><i class="bi bi-boxes"></i>Inventory</a>
+      {% endif %}
+      {% if request.user|can:"expenses.view" %}
+        <a class="nav-item-link {% if 'expenses:' in url_name %}active{% endif %}" href="{% url 'expenses:list' %}"><i class="bi bi-receipt-cutoff"></i>Expenses</a>
+      {% endif %}
+      {% if request.user|can:"suppliers.view" %}
+        <a class="nav-item-link {% if 'suppliers:' in url_name %}active{% endif %}" href="{% url 'suppliers:list' %}"><i class="bi bi-truck"></i>Suppliers</a>
+      {% endif %}
+      {% if request.user|can:"reports.view" or request.user|can:"announcements.manage" %}
+        <div class="nav-heading">Business</div>
+      {% endif %}
+      {% if request.user|can:"reports.view" %}
+        <a class="nav-item-link {% if 'reports:' in url_name %}active{% endif %}" href="{% url 'reports:index' %}"><i class="bi bi-bar-chart-line"></i>Reports</a>
+      {% endif %}
+      {% if request.user|can:"announcements.manage" %}
+        <a class="nav-item-link {% if 'announcements:' in url_name %}active{% endif %}" href="{% url 'announcements:list' %}"><i class="bi bi-megaphone"></i>Announcements</a>
+      {% endif %}
+      {% if request.user|can:"users.view" or request.user|can:"permissions.manage" %}
+        <div class="nav-heading">Administration</div>
+      {% endif %}
+      {% if request.user|can:"users.view" %}
+        <a class="nav-item-link {% if 'user_' in url_name %}active{% endif %}" href="{% url 'accounts:user_list' %}"><i class="bi bi-people"></i>Users</a>
+      {% endif %}
+      {% if request.user|can:"permissions.manage" %}
+        <a class="nav-item-link {% if url_name == 'accounts:permissions' %}active{% endif %}" href="{% url 'accounts:permissions' %}"><i class="bi bi-shield-lock"></i>Roles &amp; permissions</a>
+      {% endif %}
+      <div class="nav-heading">Account</div>
+      <a class="nav-item-link {% if url_name == 'accounts:profile' %}active{% endif %}" href="{% url 'accounts:profile' %}"><i class="bi bi-person-circle"></i>My profile</a>
+      <a class="nav-item-link {% if url_name == 'accounts:password_change' %}active{% endif %}" href="{% url 'accounts:password_change' %}"><i class="bi bi-key"></i>Change password</a>
+      {% endwith %}
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-icon d-lg-none" id="sidebarToggle" type="button" aria-label="Toggle navigation"><i class="bi bi-list fs-4"></i></button>
+      <div class="topbar-title d-none d-sm-block">{% block topbar_title %}{{ GYM_NAME }}{% endblock %}</div>
+      <div class="ms-auto d-flex align-items-center gap-2">
+      <div class="dropdown">
+        <button class="btn btn-icon position-relative" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notifications"><i class="bi bi-bell fs-5"></i>
+          {% if unread_notifications %}<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-bg-danger">{{ unread_notifications }}</span>{% endif %}</button>
+        <div class="dropdown-menu dropdown-menu-end shadow-sm p-0" style="min-width:300px">
+          {% for n in recent_notifications %}<div class="px-3 py-2 border-bottom small"><div class="fw-semibold">{{ n.title }}</div><div>{{ n.message }}</div><div class="text-muted">{{ n.created_at|timesince }} ago</div></div>
+          {% empty %}<div class="px-3 py-3 small text-muted">No new notifications.</div>{% endfor %}
+          <a class="dropdown-item text-center small py-2" href="{% url 'core:notifications' %}">View all notifications</a></div>
+      </div>
+      <div class="dropdown">
+        <button class="btn user-chip dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+          <span class="avatar">{{ request.user.display_name|slice:":1"|upper }}</span>
+          <span class="d-none d-md-inline text-start lh-sm"><span class="d-block fw-semibold">{{ request.user.display_name }}</span><small class="text-muted">{{ request.user.get_role_display }}</small></span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+          <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>My profile</a></li>
+          <li><a class="dropdown-item" href="{% url 'accounts:password_change' %}"><i class="bi bi-key me-2"></i>Change password</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li>
+            <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}
+              <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right me-2"></i>Sign out</button>
+            </form>
+          </li>
+        </ul>
+      </div>
+      </div>
+    </header>
+
+    <main class="content">
+      {% include "components/messages.html" %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<div class="page-loader" id="pageLoader" hidden><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading…</span></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'js/app.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
