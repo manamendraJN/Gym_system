@@ -41,7 +41,11 @@ class GymLoginView(auth_views.LoginView):
         return super().form_valid(form)
 
     def form_invalid(self, form):
-        throttle.register_failure(self.request.POST.get("username", ""), throttle.client_ip(self.request))
+        username, ip = self.request.POST.get("username", ""), throttle.client_ip(self.request)
+        attempts = throttle.register_failure(username, ip)
+        ActivityLog.record(None, "login_failed", f"Failed sign-in for “{username[:50]}” from {ip} (attempt {attempts})")
+        if attempts == settings.LOGIN_MAX_ATTEMPTS:
+            ActivityLog.record(None, "login_locked", f"Sign-in locked for “{username[:50]}” from {ip} after {attempts} failed attempts")
         return super().form_invalid(form)
 
 

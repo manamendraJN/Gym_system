@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.utils.functional import cached_property
@@ -30,6 +31,12 @@ def _member_q(prefix, q):
     if digits:
         cond |= Q(**{f"{prefix}phone__contains": digits})
     return cond
+
+
+def _item_url(user, target):
+    """Link back to the membership / session only if the viewer may open it; otherwise to the payments list."""
+    code = "appointments.view" if isinstance(target, Appointment) else "memberships.view"
+    return target.get_absolute_url() if user.has_gym_perm(code) else reverse("payments:outstanding")
 
 
 def _item_label(target):
@@ -187,7 +194,7 @@ class _MembershipActionView(GymPermissionMixin, FormView):
         return super().get_context_data(
             title=self.title, submit_label=self.submit_label, danger=self.danger, intro=self.intro,
             membership=self.membership, member=self.membership.member, billing=self.billing,
-            item_label=_item_label(self.membership), item_url=self.membership.get_absolute_url(), **kwargs,
+            item_label=_item_label(self.membership), item_url=_item_url(self.request.user, self.membership), **kwargs,
         )
 
 
@@ -257,7 +264,7 @@ class _PaymentActionView(GymPermissionMixin, FormView):
         return super().get_context_data(
             title=self.title, submit_label=self.submit_label, danger=self.danger, intro=self.intro,
             membership=self.payment.target, member=self.payment.member, payment=self.payment,
-            item_label=_item_label(self.payment.target), item_url=self.payment.target.get_absolute_url(), **kwargs,
+            item_label=_item_label(self.payment.target), item_url=_item_url(self.request.user, self.payment.target), **kwargs,
         )
 
 

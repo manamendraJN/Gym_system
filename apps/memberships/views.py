@@ -13,6 +13,7 @@ from django.conf import settings
 from apps.accounts.mixins import GymPermissionMixin
 from apps.core.listing import resolve_sort, sort_columns
 from apps.core.models import ActivityLog
+from apps.trainers.access import scope_by_member
 from apps.members.models import Member
 
 from . import forms, services
@@ -151,7 +152,7 @@ class MembershipListView(GymPermissionMixin, ListView):
 
     def get_queryset(self):
         g, today = self.request.GET, timezone.localdate()
-        qs = _search(Membership.objects.select_related("member", "plan"), g.get("q", "").strip())
+        qs = _search(scope_by_member(self.request.user, Membership.objects.select_related("member", "plan")), g.get("q", "").strip())
         if g.get("status") in STATUS_FILTERS:
             qs = qs.filter(_status_q(g["status"], today))
         if g.get("plan", "").isdigit():
@@ -178,7 +179,7 @@ class ExpiredListView(GymPermissionMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
-        return _search(expired_memberships(), self.request.GET.get("q", "").strip()).order_by("-end_date", "-pk")
+        return _search(scope_by_member(self.request.user, expired_memberships()), self.request.GET.get("q", "").strip()).order_by("-end_date", "-pk")
 
     def get_context_data(self, **kwargs):
         return super().get_context_data(q=self.request.GET.get("q", ""), **kwargs)
@@ -196,7 +197,7 @@ class ExpiringSoonView(GymPermissionMixin, ListView):
         return int(raw) if raw.isdigit() and int(raw) in self.day_options else settings.MEMBERSHIP_EXPIRING_SOON_DAYS
 
     def get_queryset(self):
-        return _search(expiring_soon(self.days), self.request.GET.get("q", "").strip()).order_by("end_date", "pk")
+        return _search(scope_by_member(self.request.user, expiring_soon(self.days)), self.request.GET.get("q", "").strip()).order_by("end_date", "pk")
 
     def get_context_data(self, **kwargs):
         days_options = sorted(set(self.day_options) | {self.days})
@@ -209,7 +210,7 @@ class MembershipDetailView(GymPermissionMixin, DetailView):
     template_name = "memberships/membership_detail.html"
 
     def get_queryset(self):
-        return Membership.objects.select_related("member", "plan", "previous", "created_by")
+        return scope_by_member(self.request.user, Membership.objects.select_related("member", "plan", "previous", "created_by"))
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)

@@ -11,8 +11,10 @@
     {% if can_manage and a.status == "scheduled" %}
       <a href="{% url 'appointments:reschedule' a.pk %}" class="btn btn-outline-secondary"><i class="bi bi-calendar2-week me-1"></i>Reschedule</a>
       <a href="{% url 'appointments:cancel' a.pk %}" class="btn btn-outline-danger">Cancel</a>
+      {% if a.has_started %}
       <form method="post" action="{% url 'appointments:complete' a.pk %}" data-no-loading>{% csrf_token %}<button class="btn btn-success" data-no-loading><i class="bi bi-check2-circle me-1"></i>Mark completed</button></form>
       <form method="post" action="{% url 'appointments:no_show' a.pk %}" data-no-loading data-confirm="Mark this session as a no-show?">{% csrf_token %}<button class="btn btn-outline-secondary" data-no-loading>No-show</button></form>
+      {% endif %}
     {% endif %}</div>
 </div>
 <div class="row g-4">

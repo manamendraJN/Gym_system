@@ -38,7 +38,7 @@
   {% for a in unpaid_sessions %}<tr><td><a href="{{ a.member.get_absolute_url }}" class="fw-semibold">{{ a.member.full_name }}</a><div><small class="text-muted">{{ a.member.member_id }}</small></div></td>
     <td class="text-nowrap">{{ a.start|date:"M j, Y H:i" }}<div><small class="text-muted">{{ a.trainer.full_name }}</small></div></td>
     <td class="text-nowrap">{{ a.amount_due|lkr }}</td><td class="text-nowrap">{{ a.net_paid|lkr }}</td><td class="text-nowrap fw-bold text-danger">{{ a.outstanding|lkr }}</td>
-    <td class="text-end"><a href="{{ a.get_absolute_url }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-eye"></i></a>
+    <td class="text-end">{% if request.user|can:"appointments.view" %}<a href="{{ a.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="View session"><i class="bi bi-eye"></i></a>{% endif %}
       {% if request.user|can:"payments.manage" %}<a href="{% url 'payments:record_appointment' a.pk %}" class="btn btn-sm btn-primary">Pay</a>{% endif %}</td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endif %}

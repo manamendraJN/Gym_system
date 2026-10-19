@@ -8,6 +8,13 @@ def _key(username, ip):
 
 
 def client_ip(request):
+    """Client address for throttling and audit. Behind a reverse proxy set USE_X_FORWARDED_FOR=True so the real client
+    (first X-Forwarded-For entry written by YOUR proxy) is used; leave it off when the app is exposed directly, because
+    the header is then client-controlled."""
+    if settings.USE_X_FORWARDED_FOR:
+        forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+        if forwarded:
+            return forwarded[:45]
     return request.META.get("REMOTE_ADDR", "")
 
 
@@ -19,9 +26,10 @@ def register_failure(username, ip):
     key = _key(username, ip)
     cache.add(key, 0, settings.LOGIN_LOCKOUT_SECONDS)
     try:
-        cache.incr(key)
+        return cache.incr(key)
     except ValueError:
         cache.set(key, 1, settings.LOGIN_LOCKOUT_SECONDS)
+        return 1
 
 
 def reset(username, ip):

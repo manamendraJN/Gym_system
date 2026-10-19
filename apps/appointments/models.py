@@ -58,6 +58,10 @@ class Appointment(models.Model):
         return self.status == Status.SCHEDULED and self.start > timezone.now()
 
     @property
+    def has_started(self):
+        return self.start <= timezone.now()
+
+    @property
     def is_scheduled(self):
         return self.status == Status.SCHEDULED
 

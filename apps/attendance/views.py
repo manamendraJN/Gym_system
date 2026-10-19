@@ -17,13 +17,14 @@ from apps.core.listing import resolve_sort, sort_columns
 from apps.core.models import ActivityLog
 from apps.members.models import Member, new_qr_token, phone_search_term
 from apps.memberships.queries import MEMBER_STATUS_LABELS, members_with_status
+from apps.trainers.access import scope_by_member, scope_members
 
 from . import services
 from .models import Attendance
 from .services import CheckInDenied
 
 
-def member_search(q, limit=10):
+def member_search(q, user, limit=10):
     """Search by member ID, name or phone number."""
     q = q.strip()
     cond = Q(member_id__icontains=q) | Q(full_name__icontains=q)
@@ -31,7 +32,7 @@ def member_search(q, limit=10):
     if digits:
         cond |= Q(phone__contains=digits)
     open_visit = Attendance.objects.filter(member=OuterRef("pk"), check_out__isnull=True)
-    qs = members_with_status(Member.objects.filter(cond)).annotate(inside=Exists(open_visit))
+    qs = members_with_status(scope_members(user, Member.objects.filter(cond))).annotate(inside=Exists(open_visit))
     return qs.order_by("full_name")[:limit]
 
 
@@ -51,10 +52,10 @@ class DeskView(GymPermissionMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         q = self.request.GET.get("q", "").strip()
         start, end = day_bounds(timezone.localdate())
-        inside = Attendance.objects.filter(check_out__isnull=True).select_related("member", "membership__plan")
+        inside = scope_by_member(self.request.user, Attendance.objects.filter(check_out__isnull=True).select_related("member", "membership__plan"))
         ctx.update(
             q=q,
-            results=member_search(q) if q else [],
+            results=member_search(q, self.request.user) if q else [],
             status_labels=MEMBER_STATUS_LABELS,
             inside=inside.order_by("check_in"),
             today_count=Attendance.objects.filter(check_in__gte=start, check_in__lt=end).count(),
@@ -145,7 +146,7 @@ class HistoryView(GymPermissionMixin, ListView):
         return qs
 
     def base_queryset(self):
-        return Attendance.objects.select_related("member", "membership__plan")
+        return scope_by_member(self.request.user, Attendance.objects.select_related("member", "membership__plan"))
 
     def get_queryset(self):
         qs = self.filtered(self.base_queryset())
@@ -169,7 +170,7 @@ class MemberAttendanceView(HistoryView):
     template_name = "attendance/member_history.html"
 
     def base_queryset(self):
-        self.member = get_object_or_404(Member, pk=self.kwargs["member_pk"])
+        self.member = get_object_or_404(scope_members(self.request.user, Member.objects.all()), pk=self.kwargs["member_pk"])
         return Attendance.objects.filter(member=self.member).select_related("membership__plan")
 
     def get_context_data(self, **kwargs):
@@ -187,7 +188,7 @@ class DailyReportView(GymPermissionMixin, TemplateView):
         ctx = super().get_context_data(**kwargs)
         day = parse_date(self.request.GET.get("date", "")) or timezone.localdate()
         start, end = day_bounds(day)
-        visits = Attendance.objects.filter(check_in__gte=start, check_in__lt=end).select_related("member", "membership__plan")
+        visits = scope_by_member(self.request.user, Attendance.objects.filter(check_in__gte=start, check_in__lt=end).select_related("member", "membership__plan"))
         tz = timezone.get_current_timezone()
         hours = dict(
             visits.annotate(h=ExtractHour("check_in", tzinfo=tz)).values_list("h").annotate(n=Count("pk")).order_by("h")
