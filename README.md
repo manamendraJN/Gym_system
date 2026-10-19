@@ -1,54 +1,152 @@
 # Gym Management System
 
-Django-based gym management system. **Phase 1:** project foundation, authentication, role-based access control and the dashboard.
-**Phase 2:** member management and membership plans/memberships.
-**Phase 3:** attendance (manual + QR), payments, refunds, receipts and the financial dashboard.
-**Phase 4:** trainers, personal-training appointments, workout plans, fitness progress, optional nutrition, member portal.
-**Phase 5:** equipment, inventory, expenses, notifications (+ optional e-mail/SMS/WhatsApp), announcements, business reports.
+A complete gym management application built with Django 5.2: members and memberships, attendance (manual and QR), payments and
+receipts, personal-training appointments, workout plans and fitness progress, optional nutrition, equipment, inventory, expenses,
+notifications and announcements, business reports, gym settings, an audit log and a member portal.
 
-Stack: Python 3.10+, Django 5.2 LTS, Bootstrap 5, Bootstrap Icons, Chart.js (all three loaded from the
-jsDelivr CDN), SQLite for development, PostgreSQL for production.
+Stack: Python 3.10+, Django 5.2 LTS, Bootstrap 5, Bootstrap Icons and Chart.js (loaded from the jsDelivr CDN), SQLite for development,
+PostgreSQL for production, WhiteNoise for static files, optional Redis/Celery.
+
+| Area | What it does |
+|---|---|
+| Access | Six roles (Super Admin, Gym Manager, Receptionist, Trainer, Accountant, Member); permissions per role editable by the Super Admin; trainers see only their assigned members; members see only their own records |
+| Members | Registration, profiles with photo, unique IDs, duplicate prevention, deactivation that keeps history, optional portal login |
+| Memberships | Plans (monthly … custom, LKR), assignment, renewal without rewriting history, plan changes, suspension, cancellation, expiry tracking |
+| Attendance | Front desk and QR check-in validated against membership status and plan access rules, duplicate prevention, history and reports |
+| Payments | Append-only ledger, partial payments, refunds, adjustments, pending confirmation, receipts (HTML/PDF), one balance calculation |
+| Training | Trainers, availability, assignments, session booking with conflict checks, workout plans, fitness progress, optional meal plans |
+| Operations | Equipment and maintenance, inventory with stock ledger, expenses with private receipts, suppliers |
+| Communication | Notification centre, de-duplicated reminders, announcements, optional e-mail/SMS/WhatsApp with honest delivery status |
+| Insight | Role-aware dashboard, 14 CSV/PDF/printable reports, audit log |
 
 ## Quick start (local development)
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate            # Windows   (Linux/macOS: source .venv/bin/activate)
+.venv\Scripts\activate                 # Windows   (Linux/macOS: source .venv/bin/activate)
 pip install -r requirements.txt
 
-cp .env.example .env              # then set SECRET_KEY (command is in the file)
+copy .env.example .env                 # Linux/macOS: cp .env.example .env   – then set SECRET_KEY (command is in the file)
 python manage.py migrate
-python manage.py createsuperuser  # always gets the Super Admin role
+python manage.py createsuperuser       # always gets the Super Admin role
 python manage.py runserver
 ```
 
-Open http://127.0.0.1:8000/ and sign in. Run the tests with `python manage.py test`.
+Open http://127.0.0.1:8000/ and sign in. Optional: `python manage.py seed_demo` adds demo members, payments, sessions, equipment and so on so you
+can try every screen (it only adds data, never removes any, and refuses to run when `DEBUG=False`).
 
-Password-reset emails are printed to the console by default; configure `EMAIL_*` in `.env` to send real mail.
+Password-reset e-mails are printed to the console by default; configure `EMAIL_*` in `.env` to send real mail.
+
+### Running the tests
+
+```bash
+python manage.py test                    # about 490 tests, 1-2 minutes
+python manage.py test apps.payments      # one module
+python manage.py check --deploy          # production configuration check (with production .env values)
+python manage.py makemigrations --check  # fails if a model change has no migration
+```
+
+Besides each module's unit tests, `apps/core` holds cross-cutting suites: `test_workflows.py` (eight end-to-end business workflows), `test_crawl.py`
+(follows every link for every role, checks forms carry CSRF tokens and post to real URLs), `test_security.py` (direct URL access for every route, member
+isolation, CSRF, upload handling, error leakage, audit of failed logins) and `test_performance.py` (query counts must not grow with the number of rows).
 
 ## Configuration (`.env`)
 
 | Variable | Purpose |
 |---|---|
-| `SECRET_KEY` | Required. The app refuses to start without it. |
+| `SECRET_KEY` | **Required.** The app refuses to start without it. Use a long random value. |
 | `DEBUG` | `True` for development only. Defaults to `False`. |
-| `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` | Comma-separated lists. |
-| `DB_ENGINE` | `sqlite` (default) or `postgresql`, with `DB_NAME/USER/PASSWORD/HOST/PORT`. |
-| `EMAIL_*`, `DEFAULT_FROM_EMAIL` | SMTP settings for password reset. |
-| `GYM_NAME`, `TIME_ZONE` | Branding and time zone (default Asia/Colombo). |
+| `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS` | Comma-separated host names / `https://` origins. |
+| `DB_ENGINE` | `sqlite` (default) or `postgresql`, with `DB_NAME/USER/PASSWORD/HOST/PORT` (+ optional `DB_SSLMODE`). `SQLITE_PATH` relocates the SQLite file. |
+| `REDIS_URL` | Optional shared cache so login throttling works across several worker processes. |
+| `SECURE_SSL_REDIRECT`, `SECURE_HSTS_PRELOAD`, `USE_X_FORWARDED_FOR` | HTTPS and proxy behaviour (see *Deployment*). |
+| `EMAIL_*`, `DEFAULT_FROM_EMAIL` | SMTP settings for password reset and notifications. |
+| `GYM_NAME`, `TIME_ZONE` | Initial gym name (edit under *Gym settings* afterwards) and time zone (default Asia/Colombo). |
 | `NUTRITION_ENABLED` | `True` to enable the optional nutrition module (default off). |
 | `INVENTORY_ENABLED` | `False` hides the optional inventory module and its report (default on). |
 | `SMS_PROVIDER`, `WHATSAPP_PROVIDER` | `none` (default) or `twilio`. See *Notifications and external messaging*. |
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM`, `TWILIO_WHATSAPP_FROM`, `TWILIO_WEBHOOK_URL` | Twilio credentials / sender numbers / public callback URL. |
 | `DEFAULT_PHONE_COUNTRY_CODE` | Prefix for local numbers that start with 0 (default `+94`). |
 | `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND` | Optional Celery + Redis (see *Scheduled tasks*). |
+| `LOG_LEVEL` | Console log level (default `INFO`). |
 
-### Production notes
-Set `DEBUG=False`, a strong `SECRET_KEY`, real `ALLOWED_HOSTS`, `DB_ENGINE=postgresql` and SMTP settings,
-then run `python manage.py collectstatic` and serve with gunicorn/uvicorn behind HTTPS. With `DEBUG=False`
-the app enables HTTPS redirect, secure cookies and HSTS (set `SECURE_SSL_REDIRECT=False` if TLS is terminated
-by a proxy that already redirects). Static files are served by WhiteNoise; uploaded media (`MEDIA_ROOT`) should
-be served by the web server.
+`deploy/env.production.example` lists every value to set for production.
+
+## Deployment (Linux, PostgreSQL, nginx, gunicorn)
+
+Example for Ubuntu with a `gym` service user; adapt paths as needed. Templates for every file mentioned are in `deploy/`.
+
+1. **System packages:** `sudo apt install python3 python3-venv postgresql nginx redis-server certbot python3-certbot-nginx`
+2. **Database:**
+   ```bash
+   sudo -u postgres psql -c "CREATE USER gym WITH PASSWORD 'choose-a-strong-password';"
+   sudo -u postgres psql -c "CREATE DATABASE gym_system OWNER gym ENCODING 'UTF8';"
+   ```
+3. **Code and dependencies:**
+   ```bash
+   sudo useradd --system --create-home --home-dir /srv/gym gym
+   sudo -u gym git clone <your repository> /srv/gym/app
+   sudo -u gym python3 -m venv /srv/gym/venv
+   sudo -u gym /srv/gym/venv/bin/pip install -r /srv/gym/app/requirements-prod.txt
+   ```
+4. **Configuration:** copy `deploy/env.production.example` to `/srv/gym/.env`, `chmod 600`, set `SECRET_KEY`, `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, the database and
+   e-mail values. Secrets live only in this file / the environment – never in the repository.
+5. **Initialise** (run from `/srv/gym/app` with the `.env` loaded, as the `gym` user):
+   ```bash
+   /srv/gym/venv/bin/python manage.py migrate
+   /srv/gym/venv/bin/python manage.py collectstatic --noinput
+   /srv/gym/venv/bin/python manage.py createsuperuser          # your Super Admin account
+   /srv/gym/venv/bin/python manage.py check --deploy           # should report no problems except the optional HSTS-preload note
+   ```
+6. **Application service:** install `deploy/gym.service.example` as `/etc/systemd/system/gym.service`, then `sudo systemctl enable --now gym`.
+7. **Web server and HTTPS:** install `deploy/nginx.conf.example` as the site, run `sudo certbot --nginx -d gym.example.com`, `sudo nginx -t && sudo systemctl reload nginx`.
+   Do **not** map `private_media/` in nginx (certificates and expense receipts must only be served by the application).
+8. **Scheduled notifications:** `0 * * * * gym cd /srv/gym/app && /srv/gym/venv/bin/python manage.py run_scheduled_notifications` (or Celery, see *Scheduled tasks*).
+9. **Backups:** schedule `deploy/backup.sh` nightly and copy the output off the server (see *Backups*).
+10. **Smoke test:** open `https://<host>/healthz/` (returns `{"status": "ok"}`), sign in as the Super Admin, open *Gym settings* and enter your gym's details, then create staff
+    accounts under *Users* and review *Roles & permissions*.
+
+What the application does automatically when `DEBUG=False`: redirects HTTP to HTTPS, sets secure/HttpOnly/SameSite cookies, sends HSTS (30 days), refuses unknown `Host`
+headers, serves hashed static files through WhiteNoise, and shows generic error pages without technical details. Windows hosting works the same way with `waitress` or IIS
+in place of gunicorn/nginx (gunicorn itself does not run on Windows).
+
+### Upgrading
+```bash
+git pull
+/srv/gym/venv/bin/pip install -r requirements-prod.txt
+/srv/gym/venv/bin/python manage.py migrate        # migrations are additive and preserve existing data
+/srv/gym/venv/bin/python manage.py collectstatic --noinput
+sudo systemctl restart gym
+```
+Take a backup first. Every release's migrations were verified to preserve existing data (members, memberships, payments, attendance and audit history carry through all later schemas).
+
+### Backups
+`deploy/backup.sh` writes a PostgreSQL dump (or an SQLite online backup) and an archive of `media/` and `private_media/` to `/srv/gym/backups`, keeping 14 days. Backups contain
+personal and financial data: store them encrypted and off-site, and **test a restore** on a spare machine before you need it (restore commands are at the end of the script).
+Because payments, stock movements and audit entries are append-only, a restore from the most recent backup never leaves them inconsistent.
+
+### Superuser and first users
+`python manage.py createsuperuser` creates the Super Admin (the only role that can edit permissions and create Gym Manager accounts). Create everyone else in *Users*, then link member
+logins from a member's profile (*Member portal access*) and trainer logins on the trainer's form.
+
+## Security overview
+* Server-side authorisation on every view (`GymPermissionMixin`); a site-wide login requirement (`LoginRequiredMiddleware`) with an explicit public allow-list; navigation hides what a role cannot use, but hiding is never the only control.
+* Data isolation: trainers are limited to assigned members (members, attendance, memberships, workouts, progress, nutrition, sessions); members only reach `/me/...` and only their own rows.
+* CSRF on every form (logout is POST-only); login throttling with lockout; generic login/reset messages; failed sign-ins and lockouts are written to the audit log (never the password).
+* Passwords: Django's PBKDF2 hashing, 10-character minimum, common/numeric/similarity validators. Privilege-escalation guards on user management.
+* Money: append-only payment ledger, idempotent submissions, row locking in transactions, refund/adjustment/void permissions, audit trail, no card data stored.
+* Uploads: type and size checks by content (not just extension), random file names, images only as JPEG/PNG/WebP, certificates and receipts stored outside the public media folder and streamed only to authorised users.
+* Production headers/cookies: HTTPS redirect, HSTS, secure + HttpOnly + SameSite cookies, `X-Frame-Options: DENY`, `nosniff`, strict referrer policy. Secrets only in environment variables.
+* Known gaps (see *Limitations*): no Content-Security-Policy (templates use inline scripts), no multi-factor authentication.
+
+## Limitations
+* Static assets (Bootstrap, Bootstrap Icons, Chart.js, the Inter font, and the optional QR-camera library) load from CDNs; an offline installation needs them vendored into `static/`.
+* Browser-based QR scanning needs HTTPS and camera permission; USB/Bluetooth scanners that type the code work everywhere.
+* SMS/WhatsApp delivery is implemented for Twilio only; e-mail delivery can be reported as *sent* but never *delivered* (SMTP gives no receipt).
+* PDF documents use a built-in Latin font; names in other scripts (e.g. Sinhala, Tamil) print incorrectly in PDFs (HTML views are fine).
+* Row-level locking for simultaneous payments/bookings/stock moves is effective on PostgreSQL; SQLite serialises writers instead and is meant for development only.
+* Photos and exercise images are served from `/media/` by the web server without a login (their names are random 128-bit values); private documents are never served that way.
+* Everything is single-gym, single-currency (LKR), single-time-zone.
 
 ## Project layout
 
@@ -72,7 +170,8 @@ apps/inventory/    OPTIONAL stock items and append-only stock-movement ledger
 apps/announcements/ Announcements with audience and publication window
 apps/notifications/ Reminder periods, user preferences, external delivery log/providers, scheduled generators, Celery tasks
 apps/reports/      Report engine (CSV / print / PDF), 14 reports, finance.py = the single set of money rules
-apps/core/         dashboard, notifications, statistics, activity log, template tags, error handlers, tests
+apps/core/         dashboard, gym settings, audit log, notification centre, health check, activity log, template tags, demo seeder, cross-cutting test suites
+deploy/            production templates: environment file, systemd unit, nginx site, backup script
 templates/         base.html, base_auth.html, components/ (reusable UI), registration/, accounts/, core/, errors/
 static/            css/app.css, js/app.js
 ```
