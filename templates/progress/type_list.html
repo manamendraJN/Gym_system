@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Measurement types{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Measurement types</h1><div class="d-flex gap-2"><a href="{% url 'progress:list' %}" class="btn btn-outline-secondary">Back</a>
+  {% if request.user|can:"progress.manage" %}<a href="{% url 'progress:type_create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New measurement</a>{% endif %}</div></div>
+<p class="text-muted">Body weight and height are always recorded. These extra measurements appear on every progress form while active.</p>
+<div class="card"><div class="table-responsive"><table class="table mb-0"><thead><tr><th>Name</th><th>Unit</th><th>Status</th><th></th></tr></thead><tbody>
+{% for t in object_list %}<tr><td>{{ t.name }}</td><td>{{ t.unit }}</td><td>{% if t.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}</td>
+  <td class="text-end">{% if request.user|can:"progress.manage" %}<a href="{% url 'progress:type_edit' t.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

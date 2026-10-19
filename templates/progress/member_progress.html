@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Fitness progress{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{% if portal %}My progress{% else %}Progress: {{ member.full_name }}{% endif %}</h1>{% if not portal %}<div class="text-muted">{{ member.member_id }}</div>{% endif %}</div>
+  {% if not portal %}<div class="d-flex gap-2"><a href="{% url 'progress:list' %}" class="btn btn-outline-secondary">All members</a><a href="{{ member.get_absolute_url }}" class="btn btn-outline-secondary">Member profile</a></div>{% endif %}</div>
+<div class="alert alert-light border small"><i class="bi bi-info-circle me-1"></i>These are your own recorded numbers. They are for tracking trends and are not a medical assessment.</div>
+<div class="row g-4"><div class="col-lg-8">
+  <div class="card mb-4"><div class="card-header">Body weight (kg)</div><div class="card-body">
+    {% if chart.labels %}<div class="chart-box"><canvas id="weightChart"></canvas></div>{% else %}{% include "components/empty_state.html" with icon="graph-up" title="No records yet" text="Add the first record to see your chart." %}{% endif %}</div></div>
+  {% if chart.measurements %}<div class="card mb-4"><div class="card-header">Measurements</div><div class="card-body"><div class="chart-box"><canvas id="measureChart"></canvas></div></div></div>{% endif %}
+  <div class="card"><div class="card-header">History</div>
+    <div class="table-responsive"><table class="table mb-0"><thead><tr><th>Date</th><th>Weight</th><th>Height</th><th>BMI*</th><th>Measurements</th><th>Notes</th></tr></thead><tbody>
+    {% for r in records %}<tr><td class="text-nowrap">{{ r.recorded_on|date:"M j, Y" }}<div class="small text-muted">{{ r.source }}</div></td>
+      <td>{% if r.weight_kg %}{{ r.weight_kg }} kg{% else %}—{% endif %}</td><td>{% if r.height_cm %}{{ r.height_cm }} cm{% else %}—{% endif %}</td><td>{{ r.bmi|default:"—" }}</td>
+      <td class="small">{% for m in r.measurements.all %}{{ m.type.name }} {{ m.value }}{{ m.type.unit }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td><td class="small">{{ r.notes }}</td></tr>
+    {% empty %}<tr><td colspan="6" class="text-muted text-center py-4">Nothing recorded yet.</td></tr>{% endfor %}</tbody></table></div>
+    <div class="card-footer small text-muted">*BMI is an indicative ratio of weight to height. It is not a diagnosis and says nothing about your health on its own.</div></div>
+</div>
+<div class="col-lg-4">{% if can_add %}<div class="card"><div class="card-header">Add a record</div><div class="card-body">
+  <form method="post" novalidate>{% csrf_token %}{% include "components/form_errors.html" %}
+    {% for field in form.visible_fields %}{% include "components/form_field.html" with field=field %}{% endfor %}
+    <button class="btn btn-primary w-100" type="submit">Save record</button></form></div></div>
+  {% else %}<div class="card"><div class="card-body text-muted small">You can view this member's progress. Recording is done by their trainer or the member.</div></div>{% endif %}</div></div>
+{% endblock %}
+{% block extra_js %}
+{{ chart|json_script:"progress-data" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var d = JSON.parse(document.getElementById("progress-data").textContent);
+  var colors = ["#ff5a1f", "#12151c", "#2563eb", "#198754", "#7c3aed", "#b7791f"];
+  var opts = {maintainAspectRatio: false, spanGaps: true, plugins: {legend: {display: true}}};
+  var w = document.getElementById("weightChart");
+  if (w && d.labels.length) new Chart(w, {type: "line", data: {labels: d.labels, datasets: [{label: "Weight (kg)", data: d.weight, borderColor: colors[0], backgroundColor: colors[0], tension: .25}]}, options: opts});
+  var m = document.getElementById("measureChart");
+  if (m) new Chart(m, {type: "line", data: {labels: d.labels, datasets: d.measurements.map(function (s, i) { return {label: s.label, data: s.values, borderColor: colors[(i + 1) % colors.length], backgroundColor: colors[(i + 1) % colors.length], tension: .25}; })}, options: opts});
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Fitness progress{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Fitness progress</h1><a href="{% url 'progress:types' %}" class="btn btn-outline-secondary"><i class="bi bi-rulers me-1"></i>Measurement types</a></div>
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-md-8">{% include "components/search_bar.html" with q=q placeholder="Member name, ID or phone" %}</div><div class="col-md-4"><button class="btn btn-dark w-100" type="submit" data-no-loading>Search</button></div></form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Member</th><th>Last recorded</th><th>Weight</th><th></th></tr></thead><tbody>
+{% for m in object_list %}<tr><td><a href="{% url 'progress:member' m.pk %}" class="fw-semibold">{{ m.full_name }}</a> <small class="text-muted">{{ m.member_id }}</small></td>
+  <td>{{ m.last_recorded|date:"M j, Y"|default:"—" }}</td><td>{% if m.last_weight %}{{ m.last_weight }} kg{% else %}—{% endif %}</td>
+  <td class="text-end"><a href="{% url 'progress:member' m.pk %}" class="btn btn-sm btn-outline-secondary">Open</a></td></tr>
+{% empty %}<tr><td colspan="4">{% include "components/empty_state.html" with icon="graph-up" title="No members to show" text="Trainers see the members assigned to them." %}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}
