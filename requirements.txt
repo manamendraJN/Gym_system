@@ -1,0 +1,9 @@
+Django>=5.2,<5.3
+python-dotenv>=1.0
+whitenoise>=6.6
+Pillow>=10.1
+# PostgreSQL driver (needed when DB_ENGINE=postgresql)
+psycopg[binary]>=3.1
+# QR codes for check-in, PDF receipts
+qrcode>=7.4
+reportlab>=4.0

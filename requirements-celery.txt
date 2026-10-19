@@ -1,0 +1,4 @@
+# Optional: scheduled tasks with Celery + Redis (see README "Scheduled tasks")
+-r requirements.txt
+celery>=5.3
+redis>=5.0
