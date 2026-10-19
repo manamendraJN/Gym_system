@@ -4,7 +4,7 @@
 <div class="page-header"><h1>Business reports</h1></div>
 <p class="text-muted">Every report is built from the live database. Each can be filtered, searched, printed and exported to CSV or PDF.</p>
 <div class="row g-3">{% for r in reports %}<div class="col-md-6 col-xl-4"><a href="{% url 'reports:report' r.key %}" class="card h-100 text-reset text-decoration-none"><div class="card-body d-flex gap-3">
-  <div class="stat-icon" style="background:#fff0e9;color:var(--gym-accent-dark)"><i class="bi bi-{{ r.icon }}"></i></div><div><div class="fw-semibold">{{ r.title }}</div><div class="small text-muted">{{ r.description }}</div></div></div></a></div>
+  <div class="stat-icon" style="background:#e3f4f1;color:var(--gym-accent-dark)"><i class="bi bi-{{ r.icon }}"></i></div><div><div class="fw-semibold">{{ r.title }}</div><div class="small text-muted">{{ r.description }}</div></div></div></a></div>
 {% empty %}<div class="col-12"><div class="card"><div class="card-body">{% include "components/empty_state.html" with icon="bar-chart" title="No reports available to your role" %}</div></div></div>{% endfor %}</div>
 <div class="alert alert-light border small mt-4"><strong>How the money figures are calculated.</strong> <em>Invoiced</em> = fees billed in the period. <em>Collected</em> = completed payments; <em>revenue</em> = collected minus refunds.
  <em>Outstanding</em> = what members still owe now (a receivable, not revenue). <em>Expenses</em> = non-void expense records (maintenance and stock purchases are included once through their linked expense).

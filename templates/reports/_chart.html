@@ -1,6 +1,6 @@
 {% if chart %}<div class="card mb-4"><div class="card-body"><div class="chart-box"><canvas id="reportChart"></canvas></div></div></div>
 {{ chart|json_script:"report-chart-data" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script>(function(){var d=JSON.parse(document.getElementById("report-chart-data").textContent);var colors=["#ff5a1f","#12151c","#2563eb","#198754","#7c3aed","#b7791f","#dc3545"];
+<script>(function(){var d=JSON.parse(document.getElementById("report-chart-data").textContent);var colors=["#0f766e","#12151c","#2563eb","#198754","#7c3aed","#b7791f","#dc3545"];
  d.datasets.forEach(function(s,i){s.backgroundColor=d.type==="doughnut"?colors:colors[i%colors.length];s.borderWidth=0;});
  new Chart(document.getElementById("reportChart"),{type:d.type,data:{labels:d.labels,datasets:d.datasets},options:{maintainAspectRatio:false,animation:false,plugins:{legend:{display:d.type==="doughnut"||d.datasets.length>1}}}});})();</script>{% endif %}

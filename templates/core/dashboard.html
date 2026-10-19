@@ -178,7 +178,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 (function () {
-  var palette = ["#ff5a1f", "#12151c", "#2563eb", "#198754", "#7c3aed", "#b7791f"];
+  var palette = ["#0f766e", "#12151c", "#2563eb", "#198754", "#7c3aed", "#0891b2"];
   function data(id) { return JSON.parse(document.getElementById(id).textContent); }
   var role = data("role-chart-data"), rev = data("revenue-chart-data"), att = data("attendance-chart-data");
   var roleEl = document.getElementById("roleChart");
@@ -190,7 +190,7 @@
   var revEl = document.getElementById("revenueChart");
   if (revEl && rev.labels.length) {
     new Chart(revEl, { type: "bar",
-      data: { labels: rev.labels, datasets: [{ label: "Revenue (LKR)", data: rev.values, backgroundColor: "#ff5a1f", borderRadius: 6 }] },
+      data: { labels: rev.labels, datasets: [{ label: "Revenue (LKR)", data: rev.values, backgroundColor: "#0f766e", borderRadius: 6 }] },
       options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
   }
   function maybe(id) { var el = document.getElementById(id); return el ? JSON.parse(el.textContent) : null; }

@@ -29,7 +29,7 @@
 <script>
 (function () {
   var d = JSON.parse(document.getElementById("progress-data").textContent);
-  var colors = ["#ff5a1f", "#12151c", "#2563eb", "#198754", "#7c3aed", "#b7791f"];
+  var colors = ["#0f766e", "#12151c", "#2563eb", "#198754", "#7c3aed", "#0891b2"];
   var opts = {maintainAspectRatio: false, spanGaps: true, plugins: {legend: {display: true}}};
   var w = document.getElementById("weightChart");
   if (w && d.labels.length) new Chart(w, {type: "line", data: {labels: d.labels, datasets: [{label: "Weight (kg)", data: d.weight, borderColor: colors[0], backgroundColor: colors[0], tension: .25}]}, options: opts});

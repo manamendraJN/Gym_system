@@ -68,4 +68,23 @@
     });
     modalEl.addEventListener("hidden.bs.modal", function () { pending = null; });
   }
+
+  // Backdrop parallax: nudge each equipment layer a few pixels with scroll (app) or pointer (login). Skipped for reduced motion.
+  var bg = document.querySelector(".gym-bg");
+  if (bg && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    var layers = bg.querySelectorAll(".layer"), ticking = false, px = 0, py = 0;
+    var apply = function () {
+      ticking = false;
+      var y = window.scrollY;
+      layers.forEach(function (l) {
+        var d = parseFloat(l.dataset.depth) || 0.04;
+        l.style.transform = "translate3d(" + (px * d * 40).toFixed(1) + "px," + (-(y * d) + py * d * 40).toFixed(1) + "px,0)";
+      });
+    };
+    var request = function () { if (!ticking) { ticking = true; window.requestAnimationFrame(apply); } };
+    window.addEventListener("scroll", request, { passive: true });
+    if (document.body.classList.contains("auth-body")) {
+      window.addEventListener("pointermove", function (e) { px = e.clientX / window.innerWidth - 0.5; py = e.clientY / window.innerHeight - 0.5; request(); }, { passive: true });
+    }
+  }
 })();
