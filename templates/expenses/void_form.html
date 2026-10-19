@@ -1,0 +1,6 @@
+{% extends "components/form_page.html" %}
+{% block title %}Void expense{% endblock %}
+{% block back_url %}{{ expense.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ expense.get_absolute_url }}{% endblock %}
+{% block before_form %}<div class="alert alert-warning small">Voiding keeps the record but removes it from every total. Expense: <strong>{{ expense.description }}</strong> (LKR {{ expense.amount }}).</div>{% endblock %}
+{% block submit %}Void expense{% endblock %}

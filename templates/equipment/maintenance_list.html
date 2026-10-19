@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Maintenance{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Equipment maintenance</h1><a href="{% url 'equipment:list' %}" class="btn btn-outline-secondary">Equipment</a></div>
+<div class="row g-4 mb-4"><div class="col-lg-6"><div class="card h-100"><div class="card-header">Due within 30 days or overdue</div><ul class="list-group list-group-flush">
+  {% for e in due %}<li class="list-group-item d-flex justify-content-between"><a href="{{ e.get_absolute_url }}">{{ e.code }} {{ e.name }}</a><span class="{% if e.next_maintenance_date < today %}text-danger fw-semibold{% endif %}">{{ e.next_maintenance_date|date:"M j, Y" }}</span></li>
+  {% empty %}<li class="list-group-item text-muted">Nothing is due.</li>{% endfor %}</ul></div></div>
+<div class="col-lg-6"><div class="card h-100"><div class="card-header">Open fault reports</div><ul class="list-group list-group-flush">
+  {% for f in open_faults %}<li class="list-group-item small"><a href="{{ f.equipment.get_absolute_url }}">{{ f.equipment.code }} {{ f.equipment.name }}</a> – {{ f.description|truncatechars:80 }}</li>
+  {% empty %}<li class="list-group-item text-muted">No open faults.</li>{% endfor %}</ul></div></div></div>
+<div class="row g-3 mb-3"><div class="col-md-4">{% include "components/stat_card.html" with label="Maintenance cost (filtered)" value=total_cost|lkr icon="tools" tone="amber" %}</div></div>
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Equipment or description" %}</div>
+  <div class="col-6 col-lg-2"><select name="kind" class="form-select" aria-label="Type"><option value="">Any type</option>{% for v, l in kinds %}<option value="{{ v }}" {% if v == kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From"></div><div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To"></div>
+  <div class="col-6 col-lg-2"><button class="btn btn-dark w-100" type="submit" data-no-loading>Filter</button></div></form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Date</th><th>Equipment</th><th>Type</th><th>Description</th><th class="text-end">Cost</th></tr></thead><tbody>
+{% for r in object_list %}<tr><td class="text-nowrap">{{ r.performed_on|date:"M j, Y" }}</td><td><a href="{{ r.equipment.get_absolute_url }}">{{ r.equipment.code }} {{ r.equipment.name }}</a></td><td>{{ r.get_kind_display }}</td><td>{{ r.description }}</td><td class="text-end text-nowrap">{{ r.cost|lkr }}</td></tr>
+{% empty %}<tr><td colspan="5">{% include "components/empty_state.html" with icon="tools" title="No maintenance records" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

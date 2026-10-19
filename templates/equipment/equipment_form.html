@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>{{ title }}</h1><a href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'equipment:list' %}{% endif %}" class="btn btn-outline-secondary">Back</a></div>
+<form method="post" novalidate>{% csrf_token %}{% include "components/form_errors.html" %}
+<div class="row g-4"><div class="col-lg-6"><div class="card"><div class="card-header">Identity</div><div class="card-body">
+  {% include "components/form_field.html" with field=form.name %}
+  <div class="row"><div class="col-md-6">{% include "components/form_field.html" with field=form.code %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.serial_number %}</div>
+  <div class="col-md-6">{% include "components/form_field.html" with field=form.category %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.location %}</div>
+  <div class="col-md-6">{% include "components/form_field.html" with field=form.condition %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.status %}</div></div>
+  {% include "components/form_field.html" with field=form.notes %}</div></div></div>
+<div class="col-lg-6"><div class="card mb-4"><div class="card-header">Purchase &amp; warranty</div><div class="card-body"><div class="row">
+  <div class="col-md-6">{% include "components/form_field.html" with field=form.purchase_date %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.purchase_cost %}</div>
+  <div class="col-12">{% include "components/form_field.html" with field=form.supplier %}</div>
+  <div class="col-md-6">{% include "components/form_field.html" with field=form.warranty_expires %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.warranty_notes %}</div></div>
+  {% if form.record_purchase_expense %}{% include "components/form_field.html" with field=form.record_purchase_expense %}{% endif %}</div></div>
+  <div class="card"><div class="card-header">Maintenance schedule</div><div class="card-body"><div class="row">
+  <div class="col-md-6">{% include "components/form_field.html" with field=form.maintenance_interval_days %}</div><div class="col-md-6">{% include "components/form_field.html" with field=form.next_maintenance_date %}</div></div></div></div></div></div>
+<div class="mt-4"><button class="btn btn-primary" type="submit">Save equipment</button> <a class="btn btn-link" href="{% url 'equipment:list' %}">Cancel</a></div></form>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Expense categories{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Expense categories</h1><div class="d-flex gap-2"><a href="{% url 'expenses:list' %}" class="btn btn-outline-secondary">Back</a>
+  {% if request.user|can:"expenses.manage" %}<a href="{% url 'expenses:category_create' %}" class="btn btn-primary">New category</a>{% endif %}</div></div>
+<div class="card"><ul class="list-group list-group-flush">{% for c in object_list %}<li class="list-group-item d-flex justify-content-between">{{ c.name }}
+  <span>{% if not c.is_active %}<span class="badge text-bg-secondary me-2">Inactive</span>{% endif %}{% if request.user|can:"expenses.manage" %}<a href="{% url 'expenses:category_edit' c.pk %}"><i class="bi bi-pencil"></i></a>{% endif %}</span></li>{% endfor %}</ul></div>
+{% endblock %}

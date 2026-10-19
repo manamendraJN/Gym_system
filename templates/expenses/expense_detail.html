@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Expense #{{ object.pk }}{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>{{ object.amount|lkr }}</h1><div class="text-muted">{{ object.category.name }} · {{ object.expense_date|date:"M j, Y" }}</div>
+  {% if object.is_void %}<span class="badge text-bg-secondary">Void</span>{% endif %}</div>
+  <div class="d-flex gap-2"><a href="{% url 'expenses:list' %}" class="btn btn-outline-secondary">Back</a>
+    {% if can_edit %}<a href="{% url 'expenses:edit' object.pk %}" class="btn btn-primary">Edit</a>{% endif %}
+    {% if can_void %}<a href="{% url 'expenses:void' object.pk %}" class="btn btn-outline-danger">Void</a>{% endif %}</div></div>
+<div class="card" style="max-width:760px"><div class="card-body"><dl class="detail-list mb-0">
+  <dt>Description</dt><dd>{{ object.description }}</dd>
+  <dt>Supplier</dt><dd>{{ object.supplier.name|default:"—" }}</dd><dt>Invoice / receipt no.</dt><dd>{{ object.reference|default:"—" }}</dd>
+  <dt>Entered by</dt><dd>{{ object.entered_by.display_name|default:"—" }} on {{ object.created_at|date:"M j, Y H:i" }}</dd>
+  {% if object.source_label %}<dt>Source</dt><dd>{{ object.source_label }} (generated automatically – counted once)</dd>{% endif %}
+  <dt>Receipt</dt><dd>{% if object.receipt %}<a href="{% url 'expenses:receipt' object.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-download me-1"></i>Download</a>{% else %}—{% endif %}</dd>
+  {% if object.is_void %}<dt>Voided</dt><dd>{{ object.voided_at|date:"M j, Y H:i" }} by {{ object.voided_by.display_name|default:"—" }} – {{ object.void_reason }}</dd>{% endif %}
+</dl></div></div>
+{% endblock %}

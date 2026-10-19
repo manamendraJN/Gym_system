@@ -1,0 +1,3 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'inventory:list' %}{% endif %}{% endblock %}
+{% block cancel_url %}{% url 'inventory:list' %}{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Expenses{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Expenses</h1><div class="d-flex gap-2">
+  <a href="{% url 'expenses:categories' %}" class="btn btn-outline-secondary">Categories</a>
+  <a href="{% url 'reports:report' 'expenses' %}" class="btn btn-outline-secondary"><i class="bi bi-bar-chart me-1"></i>Expense report</a>
+  {% if request.user|can:"expenses.manage" %}<a href="{% url 'expenses:create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Record expense</a>{% endif %}</div></div>
+<div class="row g-3 mb-3"><div class="col-md-4">{% include "components/stat_card.html" with label="Total in this view" value=total|lkr icon="receipt-cutoff" tone="red" sub="Void expenses are not counted" %}</div></div>
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-3">{% include "components/search_bar.html" with q=q placeholder="Description, reference, supplier" %}</div>
+  <div class="col-6 col-lg-2"><select name="category" class="form-select" aria-label="Category"><option value="">Any category</option>{% for c in categories %}<option value="{{ c.pk }}" {% if c.pk|stringformat:"s" == category %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><select name="supplier" class="form-select" aria-label="Supplier"><option value="">Any supplier</option>{% for s in suppliers %}<option value="{{ s.pk }}" {% if s.pk|stringformat:"s" == supplier %}selected{% endif %}>{{ s.name }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From" title="From"></div>
+  <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To" title="To"></div>
+  <div class="col-lg-1 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading><i class="bi bi-funnel"></i></button>{% if filtered_on %}<a href="{% url 'expenses:list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  <div class="col-12"><select name="show" class="form-select form-select-sm w-auto" aria-label="Show"><option value="">Active expenses</option><option value="void" {% if show == "void" %}selected{% endif %}>Void only</option><option value="all" {% if show == "all" %}selected{% endif %}>Active and void</option></select></div>
+</form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr>{% include "components/sort_th.html" with col=columns.date %}{% include "components/sort_th.html" with col=columns.category %}<th>Description</th><th>Supplier</th>{% include "components/sort_th.html" with col=columns.amount %}<th>Entered by</th><th></th></tr></thead><tbody>
+{% for e in object_list %}<tr {% if e.is_void %}class="text-decoration-line-through text-muted"{% endif %}>
+  <td class="text-nowrap">{{ e.expense_date|date:"M j, Y" }}</td><td>{{ e.category.name }}</td>
+  <td><a href="{{ e.get_absolute_url }}" class="text-reset fw-semibold">{{ e.description|truncatechars:60 }}</a>{% if e.reference %}<div><small class="text-muted">{{ e.reference }}</small></div>{% endif %}{% if e.receipt %} <i class="bi bi-paperclip" title="Receipt attached"></i>{% endif %}{% if e.source_label %} <span class="badge text-bg-light border">{{ e.source_label }}</span>{% endif %}</td>
+  <td>{{ e.supplier.name|default:"—" }}</td><td class="text-nowrap fw-semibold">{{ e.amount|lkr }}</td><td>{{ e.entered_by.display_name|default:"—" }}</td>
+  <td class="text-end">{% if e.is_void %}<span class="badge text-bg-secondary">Void</span>{% endif %}</td></tr>
+{% empty %}<tr><td colspan="7">{% include "components/empty_state.html" with icon="receipt-cutoff" title="No expenses found" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

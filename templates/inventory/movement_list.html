@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Stock history{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Stock movement history</h1><a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary">Inventory</a></div>
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Item name or SKU" %}</div>
+  <div class="col-6 col-lg-2"><select name="kind" class="form-select" aria-label="Type"><option value="">Any type</option>{% for v, l in kinds %}<option value="{{ v }}" {% if v == kind %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="From"></div><div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="To"></div>
+  <div class="col-6 col-lg-2"><button class="btn btn-dark w-100" type="submit" data-no-loading>Filter</button></div></form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>When</th><th>Item</th><th>Type</th><th class="text-end">Change</th><th class="text-end">After</th><th>By</th><th>Note</th></tr></thead><tbody>
+{% for m in object_list %}<tr><td class="text-nowrap">{{ m.created_at|date:"M j, Y H:i" }}</td><td><a href="{{ m.item.get_absolute_url }}">{{ m.item.name }}</a> <small class="text-muted">{{ m.item.sku }}</small></td><td>{{ m.get_kind_display }}</td>
+  <td class="text-end {% if m.delta < 0 %}text-danger{% else %}text-success{% endif %}">{{ m.delta|stringformat:"+d" }}</td><td class="text-end">{{ m.quantity_after }}</td><td>{{ m.user.display_name|default:"—" }}</td><td class="small">{{ m.reason }}</td></tr>
+{% empty %}<tr><td colspan="7">{% include "components/empty_state.html" with icon="clock-history" title="No movements" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

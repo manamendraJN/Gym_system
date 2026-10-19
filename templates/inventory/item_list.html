@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Inventory{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Inventory</h1><div class="d-flex gap-2"><a href="{% url 'inventory:movements' %}" class="btn btn-outline-secondary"><i class="bi bi-clock-history me-1"></i>Stock history</a>
+  {% if request.user|can:"inventory.manage" %}<a href="{% url 'inventory:create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New item</a>{% endif %}</div></div>
+{% if low_count %}<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>{{ low_count }}</strong> item{{ low_count|pluralize }} at or below the minimum stock level. <a href="?stock=low">Show them</a></div>{% endif %}
+<div class="card"><div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+  <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Item name or SKU" %}</div>
+  <div class="col-6 col-lg-3"><select name="category" class="form-select" aria-label="Category"><option value="">Any category</option>{% for v, l in categories %}<option value="{{ v }}" {% if v == category %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="col-6 col-lg-2"><select name="stock" class="form-select" aria-label="Stock"><option value="">Any stock</option><option value="low" {% if stock == "low" %}selected{% endif %}>Low / out</option></select></div>
+  <div class="col-lg-3 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>{% if q or category or stock %}<a href="{% url 'inventory:list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div></form></div>
+<div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Item</th><th>Category</th><th>In stock</th><th>Minimum</th><th>Level</th><th>Supplier</th></tr></thead><tbody>
+{% for i in object_list %}<tr><td><a href="{{ i.get_absolute_url }}" class="fw-semibold">{{ i.name }}</a><div><small class="text-muted">{{ i.sku }}</small></div></td><td>{{ i.get_category_display }}</td>
+  <td class="fw-semibold">{{ i.quantity }} <small class="text-muted">{{ i.unit }}</small></td><td>{{ i.min_stock }}</td>
+  <td><span class="badge text-bg-{% if i.stock_state == 'ok' %}success{% elif i.stock_state == 'low' %}warning{% else %}danger{% endif %}">{% if i.stock_state == 'ok' %}OK{% elif i.stock_state == 'low' %}Low{% else %}Out of stock{% endif %}</span></td><td>{{ i.supplier.name|default:"—" }}</td></tr>
+{% empty %}<tr><td colspan="6">{% include "components/empty_state.html" with icon="boxes" title="No items found" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

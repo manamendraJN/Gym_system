@@ -1,0 +1,6 @@
+{% extends "components/form_page.html" %}
+{% block title %}Report a fault{% endblock %}
+{% block back_url %}{{ equipment.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ equipment.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="text-muted">Equipment: <strong>{{ equipment.code }} – {{ equipment.name }}</strong></p>{% endblock %}
+{% block submit %}Report fault{% endblock %}

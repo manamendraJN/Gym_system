@@ -1,0 +1,4 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{{ item.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ item.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="text-muted"><strong>{{ item.name }}</strong> ({{ item.sku }}) – currently <strong>{{ item.quantity }} {{ item.unit }}</strong> in stock.</p>{% endblock %}
