@@ -176,9 +176,10 @@
 {% if expense_stats %}{{ expense_stats.chart|json_script:"expense-cat-data" }}{{ expense_stats.trend|json_script:"rev-exp-data" }}{% endif %}
 {% if equipment %}{{ equipment.counts|json_script:"equipment-data" }}{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>Chart.defaults.animation = false;</script>
 <script>
 (function () {
-  var palette = ["#0f766e", "#12151c", "#2563eb", "#198754", "#7c3aed", "#0891b2"];
+  var palette = ["#0f766e", "#1f2933", "#3b5b7a", "#2f7d5b", "#6b7280", "#5b8a9a"];
   function data(id) { return JSON.parse(document.getElementById(id).textContent); }
   var role = data("role-chart-data"), rev = data("revenue-chart-data"), att = data("attendance-chart-data");
   var roleEl = document.getElementById("roleChart");
@@ -198,13 +199,13 @@
   var catEl = document.getElementById("expenseCatChart");
   if (catEl && expCat && expCat.labels.length) new Chart(catEl, { type: "doughnut", data: { labels: expCat.labels, datasets: [{ data: expCat.values, backgroundColor: palette, borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom" } } } });
   var reEl = document.getElementById("revExpChart");
-  if (reEl && revExp) new Chart(reEl, { type: "bar", data: { labels: revExp.labels, datasets: [{ label: "Revenue", data: revExp.revenue, backgroundColor: "#198754", borderRadius: 4 }, { label: "Expenses", data: revExp.expenses, backgroundColor: "#dc3545", borderRadius: 4 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+  if (reEl && revExp) new Chart(reEl, { type: "bar", data: { labels: revExp.labels, datasets: [{ label: "Revenue", data: revExp.revenue, backgroundColor: "#2f7d5b", borderRadius: 4 }, { label: "Expenses", data: revExp.expenses, backgroundColor: "#b4473f", borderRadius: 4 }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
   var eqEl = document.getElementById("equipmentChart");
-  if (eqEl && eq) new Chart(eqEl, { type: "doughnut", data: { labels: eq.map(function (c) { return c.label; }), datasets: [{ data: eq.map(function (c) { return c.n; }), backgroundColor: ["#198754", "#2563eb", "#b7791f", "#dc3545"], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom" } } } });
+  if (eqEl && eq) new Chart(eqEl, { type: "doughnut", data: { labels: eq.map(function (c) { return c.label; }), datasets: [{ data: eq.map(function (c) { return c.n; }), backgroundColor: ["#2f7d5b", "#3b5b7a", "#a9894a", "#b4473f"], borderWidth: 0 }] }, options: { maintainAspectRatio: false, cutout: "60%", plugins: { legend: { position: "bottom" } } } });
   var attEl = document.getElementById("attendanceChart");
   if (attEl) {
     new Chart(attEl, { type: "bar",
-      data: { labels: att.labels, datasets: [{ label: "Check-ins", data: att.values, backgroundColor: "#12151c", borderRadius: 6 }] },
+      data: { labels: att.labels, datasets: [{ label: "Check-ins", data: att.values, backgroundColor: "#1f2933", borderRadius: 6 }] },
       options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } } });
   }
 })();

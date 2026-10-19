@@ -13,7 +13,7 @@
   if (toggle) toggle.addEventListener("click", function () { setSidebar(!sidebar.classList.contains("open")); });
   if (backdrop) backdrop.addEventListener("click", function () { setSidebar(false); });
 
-  // Loading state: disable submit buttons (prevents double submits) and show a spinner.
+  // Loading state: disable submit buttons (prevents double submits) and show "Please wait…".
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (event.defaultPrevented || form.dataset.noLoading !== undefined) return;
@@ -22,7 +22,7 @@
       setTimeout(function () {
         btn.disabled = true;
         btn.dataset.originalHtml = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Please wait…';
+        btn.textContent = "Please wait…";
       }, 0);
     }
   });
@@ -67,24 +67,5 @@
       if (form) { form._confirmed = true; form.requestSubmit(); }
     });
     modalEl.addEventListener("hidden.bs.modal", function () { pending = null; });
-  }
-
-  // Backdrop parallax: nudge each equipment layer a few pixels with scroll (app) or pointer (login). Skipped for reduced motion.
-  var bg = document.querySelector(".gym-bg");
-  if (bg && !(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) {
-    var layers = bg.querySelectorAll(".layer"), ticking = false, px = 0, py = 0;
-    var apply = function () {
-      ticking = false;
-      var y = window.scrollY;
-      layers.forEach(function (l) {
-        var d = parseFloat(l.dataset.depth) || 0.04;
-        l.style.transform = "translate3d(" + (px * d * 40).toFixed(1) + "px," + (-(y * d) + py * d * 40).toFixed(1) + "px,0)";
-      });
-    };
-    var request = function () { if (!ticking) { ticking = true; window.requestAnimationFrame(apply); } };
-    // Only the login page uses pointer parallax; the app skips scroll-linked work so scrolling stays smooth.
-    if (document.body.classList.contains("auth-body")) {
-      window.addEventListener("pointermove", function (e) { px = e.clientX / window.innerWidth - 0.5; py = e.clientY / window.innerHeight - 0.5; request(); }, { passive: true });
-    }
   }
 })();
