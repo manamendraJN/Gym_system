@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Members{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Members</h1>
+  {% if request.user|can:"members.manage" %}<a href="{% url 'members:create' %}" class="btn btn-primary"><i class="bi bi-person-plus me-1"></i>Register member</a>{% endif %}
+</div>
+
+<div class="card">
+  <div class="card-body border-bottom">
+    <form method="get" class="row g-2" data-no-loading>
+      <div class="col-lg-4">{% include "components/search_bar.html" with q=q placeholder="Name, member ID, phone or email" %}</div>
+      <div class="col-6 col-lg-2">
+        <select name="status" class="form-select" aria-label="Status">
+          <option value="">Any status</option>
+          {% for key, label in statuses %}<option value="{{ key }}" {% if key == status %}selected{% endif %}>{{ label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-lg-2"><input type="date" name="from" value="{{ date_from }}" class="form-control" aria-label="Registered from" title="Registered from"></div>
+      <div class="col-6 col-lg-2"><input type="date" name="to" value="{{ date_to }}" class="form-control" aria-label="Registered to" title="Registered to"></div>
+      <div class="col-6 col-lg-2 d-flex gap-2">
+        <button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+        {% if filtered %}<a href="{% url 'members:list' %}" class="btn btn-outline-secondary" title="Clear filters"><i class="bi bi-x-lg"></i></a>{% endif %}
+      </div>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr>
+        {% include "components/sort_th.html" with col=columns.member_id %}
+        {% include "components/sort_th.html" with col=columns.name %}
+        <th>Contact</th>
+        {% include "components/sort_th.html" with col=columns.registered %}
+        {% include "components/sort_th.html" with col=columns.status %}
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {% for m in object_list %}
+        <tr>
+          <td class="text-nowrap"><a href="{{ m.get_absolute_url }}" class="fw-semibold">{{ m.member_id }}</a></td>
+          <td><div class="d-flex align-items-center gap-2">
+            {% if m.photo %}<img src="{{ m.photo.url }}" alt="" class="avatar-img">{% else %}<span class="avatar">{{ m.initials }}</span>{% endif %}
+            <a href="{{ m.get_absolute_url }}" class="text-reset text-decoration-none fw-semibold">{{ m.full_name }}</a></div></td>
+          <td><div>{{ m.phone }}</div><small class="text-muted">{{ m.email }}</small></td>
+          <td class="text-nowrap">{{ m.registration_date|date:"M j, Y" }}</td>
+          <td>{% include "components/status_badge.html" with key=m.membership_status label=m.membership_status|member_status %}</td>
+          <td class="text-end"><a href="{{ m.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">{% include "components/empty_state.html" with icon="people" title="No members found" text="Try changing your search or filters, or register a new member." %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

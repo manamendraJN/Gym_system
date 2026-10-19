@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ object.full_name }}{% endblock %}
+{% block content %}
+{% with member=object %}
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">
+    {% if member.photo %}<img src="{{ member.photo.url }}" alt="" class="avatar-lg">{% else %}<span class="avatar-lg">{{ member.initials }}</span>{% endif %}
+    <div>
+      <h1>{{ member.full_name }}</h1>
+      <div class="text-muted">{{ member.member_id }} · registered {{ member.registration_date|date:"M j, Y" }}</div>
+      <div class="mt-1">{% include "components/status_badge.html" with key=status_key label=status_label %}</div>
+    </div>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if request.user|can:"memberships.manage" and member.is_active %}<a href="{% url 'memberships:assign' member.pk %}" class="btn btn-primary"><i class="bi bi-card-checklist me-1"></i>Assign membership</a>{% endif %}
+    {% if request.user|can:"members.manage" %}
+      <a href="{% url 'members:edit' member.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Edit</a>
+      <form method="post" action="{% url 'members:toggle_active' member.pk %}" data-no-loading
+            data-confirm="{% if member.is_active %}Deactivate {{ member.full_name }}? Their memberships and history are kept, but no new memberships can be assigned.{% else %}Reactivate {{ member.full_name }}?{% endif %}">
+        {% csrf_token %}
+        <button type="submit" data-no-loading class="btn {% if member.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+          <i class="bi bi-{% if member.is_active %}person-x{% else %}person-check{% endif %} me-1"></i>{% if member.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if not member.is_active %}<div class="alert alert-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>This member is deactivated{% if member.deactivated_at %} since {{ member.deactivated_at|date:"M j, Y" }}{% endif %}. History is preserved.</div>{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card mb-4"><div class="card-header">Contact</div><div class="card-body">
+      <dl class="detail-list mb-0">
+        <dt>Phone</dt><dd>{{ member.phone }}</dd>
+        <dt>Email</dt><dd>{{ member.email|default:"—" }}</dd>
+        <dt>Date of birth</dt><dd>{{ member.date_of_birth|date:"M j, Y" }} ({{ member.age }} years)</dd>
+        <dt>Address</dt><dd>{{ member.address|default:"—"|linebreaksbr }}</dd>
+        <dt>Emergency contact</dt><dd>{{ member.emergency_contact_name }}<br><span class="text-muted">{{ member.emergency_contact_phone }}</span></dd>
+      </dl>
+    </div></div>
+    <div class="card"><div class="card-header">Fitness goals</div><div class="card-body">
+      {% if member.fitness_goals %}{{ member.fitness_goals|linebreaksbr }}{% else %}<span class="text-muted">No goals recorded.</span>{% endif %}
+    </div></div>
+  </div>
+
+  <div class="col-lg-8">
+    {% if request.user|can:"memberships.view" %}
+    <div class="card mb-4"><div class="card-header">Current membership</div><div class="card-body">
+      {% if current %}
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          <div><div class="fs-5 fw-semibold">{{ current.plan.name }}</div>
+            <div class="text-muted">{{ current.start_date|date:"M j, Y" }} – {{ current.end_date|date:"M j, Y" }}</div></div>
+          <div class="text-end">{% include "components/status_badge.html" with key=current.status_key label=current.status_label %}
+            <div><a href="{{ current.get_absolute_url }}">Details &amp; actions</a></div></div>
+        </div>
+      {% else %}
+        {% include "components/empty_state.html" with icon="card-checklist" title="No membership yet" text="Assign a plan to start this member's membership." %}
+      {% endif %}
+    </div></div>
+
+    <div class="card mb-4"><div class="card-header">Membership history</div>
+      {% if history %}
+      <div class="table-responsive"><table class="table mb-0">
+        <thead><tr><th>Plan</th><th>Period</th><th>Type</th><th>Price</th><th>Status</th></tr></thead>
+        <tbody>{% for h in history %}
+          <tr><td><a href="{{ h.get_absolute_url }}">{{ h.plan.name }}</a></td>
+            <td class="text-nowrap">{{ h.start_date|date:"M j, Y" }} – {{ h.end_date|date:"M j, Y" }}</td>
+            <td>{{ h.get_kind_display }}</td><td class="text-nowrap">{{ h.price|lkr }}</td>
+            <td>{% include "components/status_badge.html" with key=h.status_key label=h.status_label %}</td></tr>
+        {% endfor %}</tbody></table></div>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="clock-history" title="No history yet" %}</div>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if request.user|can:"payments.view" %}
+    <div class="card mb-4"><div class="card-header d-flex justify-content-between">Payments
+      <span class="fw-normal small">{% if outstanding_total %}<span class="text-danger fw-semibold">Outstanding {{ outstanding_total|lkr }}</span> · {% endif %}<a href="{% url 'payments:list' %}?q={{ member.member_id }}">All payments</a></span></div>
+      {% if recent_payments %}<div class="table-responsive"><table class="table mb-0"><tbody>
+        {% for p in recent_payments %}<tr><td><a href="{{ p.get_absolute_url }}">{{ p.receipt_number }}</a></td><td class="text-nowrap">{{ p.paid_on|date:"M j, Y" }}</td><td>{{ p.item_label }}</td>
+          <td class="text-end text-nowrap {% if p.kind == 'refund' %}text-danger{% endif %}">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|lkr }}</td>
+          <td>{% include "components/status_badge.html" with key=p.status label=p.get_status_display %}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="cash-coin" title="No payments yet" %}</div>{% endif %}
+    </div>
+    {% endif %}
+    {% if request.user|can:"attendance.view" %}
+    <div class="card mb-4"><div class="card-header d-flex justify-content-between">Attendance
+      <span class="fw-normal small">{{ visit_count }} visit{{ visit_count|pluralize }} · <a href="{% url 'attendance:member_history' member.pk %}">Full history</a>{% if request.user|can:"attendance.manage" %} · <a href="{% url 'attendance:qr_card' member.pk %}"><i class="bi bi-qr-code"></i> QR card</a>{% endif %}</span></div>
+      {% if recent_visits %}{% include "attendance/_visits_table.html" with visits=recent_visits show_member=False %}
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="calendar-check" title="No visits yet" %}</div>{% endif %}
+    </div>
+    {% endif %}
+    {% if request.user|can:"trainers.view" or request.user|can:"workouts.view" or request.user|can:"progress.view" %}
+    <div class="card mb-4"><div class="card-header d-flex justify-content-between">Training
+      <span class="fw-normal small d-flex flex-wrap gap-2">
+        {% if request.user|can:"workouts.view" %}<a href="{% url 'workouts:plan_list' %}?q={{ member.member_id }}">Workout plans</a>{% endif %}
+        {% if request.user|can:"progress.view" %}<a href="{% url 'progress:member' member.pk %}">Progress</a>{% endif %}
+        {% if NUTRITION_ENABLED and request.user|can:"nutrition.view" %}<a href="{% url 'nutrition:profile' member.pk %}">Nutrition</a>{% endif %}
+        {% if request.user|can:"appointments.manage" %}<a href="{% url 'appointments:book' %}?member={{ member.member_id }}">Book session</a>{% endif %}</span></div>
+      <div class="card-body">
+        <div class="text-muted small mb-1">Assigned trainers</div>
+        {% for a in assigned_trainers %}<div class="d-flex justify-content-between"><span><a href="{{ a.trainer.get_absolute_url }}">{{ a.trainer.full_name }}</a> <small class="text-muted">since {{ a.start_date|date:"M j, Y" }}</small></span></div>
+        {% empty %}<span class="text-muted">No trainer assigned.</span>{% endfor %}
+        {% if request.user|can:"trainers.manage" %}<a href="{% url 'trainers:assign' %}?member={{ member.member_id }}" class="btn btn-sm btn-outline-secondary mt-2">Assign trainer</a>{% endif %}
+      </div></div>
+    {% endif %}
+    {% if request.user|can:"users.manage" %}
+    <div class="card"><div class="card-header">Member portal access</div><div class="card-body">
+      {% if member.user %}<p class="mb-2">Linked to login <strong>{{ member.user.username }}</strong> ({{ member.user.email }}).</p>
+        <form method="post" action="{% url 'members:portal_access' member.pk %}" data-no-loading data-confirm="Unlink this login from the member?">{% csrf_token %}<input type="hidden" name="action" value="unlink"><button class="btn btn-sm btn-outline-danger" data-no-loading>Unlink</button></form>
+      {% else %}
+        <form method="post" action="{% url 'members:portal_access' member.pk %}" class="mb-3" data-no-loading>{% csrf_token %}<input type="hidden" name="action" value="create">
+          <button class="btn btn-sm btn-primary" data-no-loading><i class="bi bi-envelope me-1"></i>Create login &amp; email password link</button>
+          {% if not member.email %}<div class="small text-muted mt-1">Add an email address first.</div>{% endif %}</form>
+        {% if portal_candidates %}<form method="post" action="{% url 'members:portal_access' member.pk %}" class="d-flex gap-2" data-no-loading>{% csrf_token %}<input type="hidden" name="action" value="link">
+          <select name="user" class="form-select form-select-sm" aria-label="Existing member account">{% for u in portal_candidates %}<option value="{{ u.pk }}">{{ u.username }} ({{ u.email }})</option>{% endfor %}</select>
+          <button class="btn btn-sm btn-outline-secondary text-nowrap" data-no-loading>Link account</button></form>{% endif %}
+      {% endif %}
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}
+{% endblock %}
