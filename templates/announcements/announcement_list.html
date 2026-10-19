@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Announcements</h1><a href="{% url 'announcements:create' %}" class="btn btn-primary"><i class="bi bi-megaphone me-1"></i>New announcement</a></div>
+<ul class="nav nav-pills mb-3">  <li class="nav-item"><a class="nav-link {% if not status %}active{% endif %}" href="?">All</a></li>
+  <li class="nav-item"><a class="nav-link {% if status == 'live' %}active{% endif %}" href="?status=live">Live</a></li>
+  <li class="nav-item"><a class="nav-link {% if status == 'scheduled' %}active{% endif %}" href="?status=scheduled">Scheduled</a></li>
+  <li class="nav-item"><a class="nav-link {% if status == 'inactive' %}active{% endif %}" href="?status=inactive">Inactive</a></li></ul>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Announcement</th><th>Audience</th><th>Publishes</th><th>Expires</th><th>Notified</th><th>Status</th><th></th></tr></thead><tbody>
+{% for a in object_list %}<tr><td><span class="fw-semibold">{{ a.title }}</span> {% if a.kind == "closure" %}<span class="badge text-bg-danger">Closure</span>{% endif %}<div class="small text-muted">{{ a.body|truncatechars:80 }}</div></td>
+  <td>{{ a.get_audience_display }}</td><td class="text-nowrap">{{ a.publish_at|date:"M j, Y H:i" }}</td><td class="text-nowrap">{{ a.expires_at|date:"M j, Y H:i"|default:"—" }}</td>
+  <td>{% if a.notified_at %}{{ a.notified_count }} user{{ a.notified_count|pluralize }}{% elif a.send_notification %}<span class="text-muted">Pending</span>{% else %}—{% endif %}</td>
+  <td><span class="badge text-bg-{% if a.status_key == 'live' %}success{% elif a.status_key == 'scheduled' %}info{% else %}secondary{% endif %}">{{ a.status_label }}</span></td>
+  <td class="text-end text-nowrap"><a href="{% url 'announcements:edit' a.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+    <form method="post" action="{% url 'announcements:toggle' a.pk %}" class="d-inline" data-no-loading data-confirm="{% if a.is_active %}Deactivate{% else %}Activate{% endif %} this announcement?">{% csrf_token %}<button class="btn btn-sm {% if a.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" data-no-loading><i class="bi bi-{% if a.is_active %}toggle-on{% else %}toggle-off{% endif %}"></i></button></form></td></tr>
+{% empty %}<tr><td colspan="7">{% include "components/empty_state.html" with icon="megaphone" title="No announcements" %}</td></tr>{% endfor %}</tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}

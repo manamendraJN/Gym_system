@@ -1,0 +1,2 @@
+{% for a in announcements %}<div class="alert alert-{% if a.kind == 'closure' %}danger{% elif a.kind == 'promo' %}success{% else %}info{% endif %} d-flex gap-2" role="alert">
+  <i class="bi bi-{% if a.kind == 'closure' %}exclamation-octagon-fill{% else %}megaphone-fill{% endif %} mt-1"></i><div><strong>{{ a.title }}</strong><div>{{ a.body|linebreaksbr }}</div></div></div>{% endfor %}
