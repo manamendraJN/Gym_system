@@ -36,7 +36,7 @@ def assign_trainer(trainer, member, user, notes="", start_date=None):
 
 @transaction.atomic
 def end_assignment(assignment, user):
-    assignment = TrainerAssignment.objects.select_for_update().select_related("trainer", "member").get(pk=assignment.pk)
+    assignment = TrainerAssignment.objects.select_related("trainer", "member").select_for_update(of=("self",)).get(pk=assignment.pk)
     if assignment.end_date is not None:
         raise AssignmentError("This assignment has already ended.")
     assignment.end_date = max(timezone.localdate(), assignment.start_date)

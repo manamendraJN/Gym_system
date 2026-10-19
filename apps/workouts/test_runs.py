@@ -281,3 +281,38 @@ class TrainerConfigurationTests(Base):
         self.assertEqual(added.position, 1)  # an empty order keeps the current one
         self.login(self.login_a)
         self.assertEqual(self.client.post(url, form).status_code, 403)  # members cannot configure plans
+
+
+class PostgresLockingTests(TestCase):
+    """SQLite ignores row locks, so these tests never caught a PostgreSQL-only error ("FOR UPDATE cannot be applied to the nullable
+    side of an outer join"). Compile the SQL for PostgreSQL and check the lock is limited to the main table."""
+
+    def compile_for_postgres(self, queryset):
+        from unittest import mock
+
+        from django.db.backends.postgresql.base import DatabaseWrapper
+
+        settings_dict = {"NAME": "x", "USER": "", "PASSWORD": "", "HOST": "", "PORT": "", "OPTIONS": {}, "TIME_ZONE": None, "CONN_MAX_AGE": 0,
+                         "AUTOCOMMIT": True, "ATOMIC_REQUESTS": False, "CONN_HEALTH_CHECKS": False, "TEST": {}}
+        wrapper = DatabaseWrapper(settings_dict, alias="pg_check")
+        wrapper.in_atomic_block = True
+        with mock.patch.object(DatabaseWrapper, "get_autocommit", return_value=False), mock.patch.object(DatabaseWrapper, "ensure_connection"):
+            return queryset.query.get_compiler(connection=wrapper).as_sql()[0]
+
+    def test_locked_queries_with_joins_lock_only_their_own_table(self):
+        from apps.memberships.models import Membership
+        from apps.payments.models import Payment
+
+        for queryset, table in ((WorkoutRun.objects.select_related("plan", "member").select_for_update(of=("self",)), "workouts_workoutrun"),
+                                (SetRun.objects.select_related("exercise_run").select_for_update(of=("self",)), "workouts_setrun")):
+            self.assertIn(f'FOR UPDATE OF "{table}"', self.compile_for_postgres(queryset))
+        # the service functions build their own querysets; make sure none of them uses a bare lock together with a join
+        import inspect
+
+        from apps.memberships import services as membership_services
+        from apps.payments import services as payment_services
+        from apps.trainers import services as trainer_services
+
+        for module in (runs, membership_services, payment_services, trainer_services):
+            source = inspect.getsource(module)
+            self.assertNotIn("select_for_update().select_related", source, module.__name__)

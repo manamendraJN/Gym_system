@@ -26,7 +26,7 @@ class RunError(Exception):
 
 
 def _locked_run(run):
-    return WorkoutRun.objects.select_for_update().select_related("plan", "member").get(pk=run.pk)
+    return WorkoutRun.objects.select_related("plan", "member").select_for_update(of=("self",)).get(pk=run.pk)
 
 
 def _require_active(run):
@@ -95,7 +95,7 @@ def finish_set(run, set_pk, now=None):
     now = now or timezone.now()
     run = _locked_run(run)
     _require_active(run)
-    s = SetRun.objects.select_for_update().select_related("exercise_run").filter(pk=set_pk, exercise_run__run=run).first()
+    s = SetRun.objects.select_related("exercise_run").select_for_update(of=("self",)).filter(pk=set_pk, exercise_run__run=run).first()
     if s is None:
         raise RunError("That set is not part of this workout.")
     if s.completed_at:

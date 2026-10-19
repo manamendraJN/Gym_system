@@ -75,7 +75,7 @@ def _notify_member(payment, confirmed=False):
 
 def _lock_membership(target):
     """Lock the item being paid for (a Membership or an Appointment)."""
-    return type(target).objects.select_for_update().select_related("member").get(pk=target.pk)
+    return type(target).objects.select_related("member").select_for_update(of=("self",)).get(pk=target.pk)
 
 
 def _fields(target):
@@ -165,7 +165,7 @@ def record_payment(membership, amount, method, user, idempotency_key, paid_on=No
 @transaction.atomic
 def confirm_payment(payment, user):
     m = _lock_membership(payment.target)
-    payment = Payment.objects.select_for_update().select_related("member").get(pk=payment.pk)
+    payment = Payment.objects.select_related("member").select_for_update(of=("self",)).get(pk=payment.pk)
     if payment.status != Status.PENDING:
         raise PaymentError("Only a pending payment can be confirmed.")
     bal = billing_for(m)
@@ -181,7 +181,7 @@ def confirm_payment(payment, user):
 @transaction.atomic
 def reject_payment(payment, user, reason):
     _lock_membership(payment.target)
-    payment = Payment.objects.select_for_update().select_related("member").get(pk=payment.pk)
+    payment = Payment.objects.select_related("member").select_for_update(of=("self",)).get(pk=payment.pk)
     if payment.status != Status.PENDING:
         raise PaymentError("Only a pending payment can be rejected.")
     payment.status = Status.FAILED
@@ -196,7 +196,7 @@ def void_payment(payment, user, reason):
     if not reason.strip():
         raise PaymentError("A reason is required.")
     _lock_membership(payment.target)
-    payment = Payment.objects.select_for_update().select_related("member").get(pk=payment.pk)
+    payment = Payment.objects.select_related("member").select_for_update(of=("self",)).get(pk=payment.pk)
     if payment.kind == Kind.ADJUSTMENT:
         raise PaymentError("Adjustments cannot be voided; record an opposite adjustment instead.")
     if payment.status not in (Status.COMPLETED, Status.PENDING):
@@ -217,7 +217,7 @@ def refund_payment(payment, amount, method, user, idempotency_key, reason, exter
     if existing:
         return existing, False
     m = _lock_membership(payment.target)
-    original = Payment.objects.select_for_update().select_related("member").get(pk=payment.pk)
+    original = Payment.objects.select_related("member").select_for_update(of=("self",)).get(pk=payment.pk)
     amount = _validate_amount(amount)
     if not reason.strip():
         raise PaymentError("A reason is required for refunds.")

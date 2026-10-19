@@ -47,7 +47,7 @@ def _fresh(membership_id):
     """Lock the member and reload the membership inside the transaction."""
     member_id = Membership.objects.values_list("member_id", flat=True).get(pk=membership_id)
     member = _lock(member_id)
-    membership = Membership.objects.select_related("plan", "member").select_for_update().get(pk=membership_id)
+    membership = Membership.objects.select_related("plan", "member").select_for_update(of=("self",)).get(pk=membership_id)
     membership.member = member
     return member, membership
 
