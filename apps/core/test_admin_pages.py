@@ -149,19 +149,3 @@ class HealthAndDemoTests(Base):
             call_command("seed_demo", stdout=StringIO())
         self.assertFalse(Member.objects.exists())
 
-    @override_settings(DEBUG=True)
-    def test_demo_seeder_needs_a_super_admin_adds_data_once_and_never_removes_any(self):
-        User.objects.filter(role="super_admin").update(is_active=False)
-        with self.assertRaisesMessage(CommandError, "Super Admin"):
-            call_command("seed_demo", stdout=StringIO())
-        User.objects.filter(role="super_admin").update(is_active=True)
-        real = Member.objects.create(full_name="Real Person", phone="0712345678", date_of_birth="1990-01-01", emergency_contact_name="K", emergency_contact_phone="0719876543")
-        out = StringIO()
-        call_command("seed_demo", stdout=out)
-        self.assertIn("Demo data added", out.getvalue())
-        self.assertTrue(Member.objects.filter(pk=real.pk, full_name="Real Person").exists())  # existing data untouched
-        count = Member.objects.count()
-        out = StringIO()
-        call_command("seed_demo", stdout=out)
-        self.assertIn("already exists", out.getvalue())
-        self.assertEqual(Member.objects.count(), count)

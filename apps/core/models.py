@@ -93,3 +93,19 @@ class Notification(models.Model):
 
             queue_deliveries(note)
         return note
+
+
+class SampleRecord(models.Model):
+    """Ownership register for sample data: one row per record created by `load_sample_data`.
+    `cleanup_sample_data` deletes only records listed here, so real data is never touched."""
+
+    model_label = models.CharField(max_length=100)
+    object_pk = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["model_label", "object_pk"], name="unique_sample_record")]
+        indexes = [models.Index(fields=["model_label"])]
+
+    def __str__(self):
+        return f"{self.model_label}#{self.object_pk}"
