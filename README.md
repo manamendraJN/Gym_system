@@ -32,7 +32,7 @@ python manage.py createsuperuser       # always gets the Super Admin role
 python manage.py runserver
 ```
 
-Open http://127.0.0.1:8000/ and sign in. Optional: `python manage.py seed_demo` adds demo members, payments, sessions, equipment and so on so you
+Open http://127.0.0.1:8000/ and sign in. Optional: `python manage.py load_sample_data` adds sample members, payments, sessions, equipment and staff logins (see SAMPLE_DATA_GUIDE.md; remove them again with `cleanup_sample_data`) so you
 can try every screen (it only adds data, never removes any, and refuses to run when `DEBUG=False`).
 
 Password-reset e-mails are printed to the console by default; configure `EMAIL_*` in `.env` to send real mail.
