@@ -1,0 +1,4 @@
+{% extends "components/form_page.html" %}
+{% block back_url %}{{ trainer.get_absolute_url }}{% endblock %}
+{% block cancel_url %}{{ trainer.get_absolute_url }}{% endblock %}
+{% block before_form %}<p class="text-muted">Trainer: <strong>{{ trainer.full_name }}</strong></p>{% endblock %}

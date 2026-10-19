@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}Trainers{% endblock %}
+{% block content %}
+<div class="page-header"><h1>Trainers</h1>
+  <div class="d-flex gap-2">
+    {% if request.user.role == "trainer" %}<a href="{% url 'trainers:my_members' %}" class="btn btn-outline-secondary"><i class="bi bi-people me-1"></i>My members</a>{% endif %}
+    {% if request.user|can:"trainers.manage" %}<a href="{% url 'trainers:assign' %}" class="btn btn-outline-secondary"><i class="bi bi-link-45deg me-1"></i>Assign member</a>
+    <a href="{% url 'trainers:create' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New trainer</a>{% endif %}</div></div>
+<div class="card">
+  <div class="card-body border-bottom"><form method="get" class="row g-2" data-no-loading>
+    <div class="col-md-6">{% include "components/search_bar.html" with q=q placeholder="Name, specialty, email or phone" %}</div>
+    <div class="col-6 col-md-3"><select name="status" class="form-select" aria-label="Status"><option value="">Any status</option>
+      {% for v, l in statuses %}<option value="{{ v }}" {% if v == status %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-dark flex-grow-1" type="submit" data-no-loading>Filter</button>
+      {% if q or status %}<a href="{% url 'trainers:list' %}" class="btn btn-outline-secondary"><i class="bi bi-x-lg"></i></a>{% endif %}</div>
+  </form></div>
+  <div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>Trainer</th><th>Specialties</th><th>Members</th><th>Rate / hour</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for t in object_list %}
+      <tr>
+        <td><div class="d-flex align-items-center gap-2">{% if t.photo %}<img src="{{ t.photo.url }}" alt="" class="avatar-img">{% else %}<span class="avatar">{{ t.initials }}</span>{% endif %}
+          <div class="lh-sm"><a href="{{ t.get_absolute_url }}" class="fw-semibold text-reset text-decoration-none">{{ t.full_name }}</a><div><small class="text-muted">{{ t.phone }}</small></div></div></div></td>
+        <td>{% for s in t.specialty_list %}<span class="badge text-bg-light border me-1">{{ s }}</span>{% empty %}<span class="text-muted">—</span>{% endfor %}</td>
+        <td>{{ t.member_count }}</td>
+        <td class="text-nowrap">{% if t.hourly_rate %}{{ t.hourly_rate|lkr }}{% else %}<span class="text-muted">Free</span>{% endif %}</td>
+        <td><span class="badge text-bg-{% if t.employment_status == 'active' %}success{% elif t.employment_status == 'on_leave' %}warning{% else %}secondary{% endif %}">{{ t.get_employment_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">{% include "components/empty_state.html" with icon="person-badge" title="No trainers found" %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

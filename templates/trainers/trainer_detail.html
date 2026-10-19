@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}{{ object.full_name }}{% endblock %}
+{% block content %}
+{% with t=object %}
+<div class="page-header">
+  <div class="d-flex align-items-center gap-3">{% if t.photo %}<img src="{{ t.photo.url }}" alt="" class="avatar-lg">{% else %}<span class="avatar-lg">{{ t.initials }}</span>{% endif %}
+    <div><h1>{{ t.full_name }}</h1><div class="text-muted">{{ t.phone }}{% if t.email %} · {{ t.email }}{% endif %}</div>
+      <span class="badge text-bg-{% if t.employment_status == 'active' %}success{% elif t.employment_status == 'on_leave' %}warning{% else %}secondary{% endif %}">{{ t.get_employment_status_display }}</span></div></div>
+  <div class="d-flex flex-wrap gap-2">
+    {% if request.user|can:"appointments.manage" and t.is_bookable %}<a href="{% url 'appointments:book' %}?trainer={{ t.pk }}" class="btn btn-primary"><i class="bi bi-calendar-plus me-1"></i>Book session</a>{% endif %}
+    {% if can_manage %}<a href="{% url 'trainers:assign' %}?trainer={{ t.pk }}" class="btn btn-outline-secondary">Assign member</a>
+    <a href="{% url 'trainers:edit' t.pk %}" class="btn btn-outline-secondary"><i class="bi bi-pencil me-1"></i>Edit</a>{% endif %}
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card mb-4"><div class="card-header">About</div><div class="card-body">
+      <dl class="detail-list mb-0">
+        <dt>Specialties</dt><dd>{% for s in t.specialty_list %}<span class="badge text-bg-light border me-1">{{ s }}</span>{% empty %}—{% endfor %}</dd>
+        <dt>Qualifications</dt><dd>{{ t.qualifications|default:"—"|linebreaksbr }}</dd>
+        <dt>Bio</dt><dd>{{ t.bio|default:"—"|linebreaksbr }}</dd>
+        <dt>Joined</dt><dd>{{ t.hire_date|date:"M j, Y" }}</dd>
+        <dt>Rate</dt><dd>{% if t.hourly_rate %}{{ t.hourly_rate|lkr }} / hour{% else %}Free sessions{% endif %}</dd>
+        {% if upcoming_sessions is not None %}<dt>Sessions</dt><dd>{{ upcoming_sessions }} upcoming · {{ completed_sessions }} completed</dd>{% endif %}
+      </dl></div></div>
+    <div class="card mb-4"><div class="card-header d-flex justify-content-between">Weekly availability {% if can_manage %}<a href="{% url 'trainers:availability_add' t.pk %}" class="small fw-normal">+ Add</a>{% endif %}</div>
+      {% if availability %}<ul class="list-group list-group-flush">{% for a in availability %}<li class="list-group-item d-flex justify-content-between align-items-center">
+        <span>{{ a.get_weekday_display }} <span class="text-muted">{{ a.start_time|time:"H:i" }}–{{ a.end_time|time:"H:i" }}</span></span>
+        {% if can_manage %}<form method="post" action="{% url 'trainers:availability_delete' a.pk %}" data-no-loading data-confirm="Remove this window?">{% csrf_token %}<button class="btn btn-sm btn-link text-danger p-0" data-no-loading><i class="bi bi-trash"></i></button></form>{% endif %}</li>{% endfor %}</ul>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="clock" title="No availability set" text="Members cannot book until windows are added." %}</div>{% endif %}</div>
+    <div class="card"><div class="card-header d-flex justify-content-between">Time off {% if can_manage %}<a href="{% url 'trainers:timeoff_add' t.pk %}" class="small fw-normal">+ Add</a>{% endif %}</div>
+      {% if time_off %}<ul class="list-group list-group-flush">{% for o in time_off %}<li class="list-group-item d-flex justify-content-between"><span>{{ o.start_date|date:"M j" }} – {{ o.end_date|date:"M j, Y" }} <span class="text-muted">{{ o.reason }}</span></span>
+        {% if can_manage %}<form method="post" action="{% url 'trainers:timeoff_delete' o.pk %}" data-no-loading>{% csrf_token %}<button class="btn btn-sm btn-link text-danger p-0" data-no-loading><i class="bi bi-trash"></i></button></form>{% endif %}</li>{% endfor %}</ul>
+      {% else %}<div class="card-body text-muted small">No upcoming time off.</div>{% endif %}</div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card mb-4"><div class="card-header">Assigned members <span class="badge text-bg-dark ms-1">{{ current_assignments|length }}</span></div>
+      {% if current_assignments %}<div class="table-responsive"><table class="table mb-0"><thead><tr><th>Member</th><th>Since</th><th></th></tr></thead><tbody>
+        {% for a in current_assignments %}<tr><td><a href="{{ a.member.get_absolute_url }}" class="fw-semibold">{{ a.member.full_name }}</a> <small class="text-muted">{{ a.member.member_id }}</small></td><td>{{ a.start_date|date:"M j, Y" }}</td>
+          <td class="text-end">{% if can_manage %}<form method="post" action="{% url 'trainers:end_assignment' a.pk %}" class="d-inline" data-no-loading data-confirm="End this assignment? It stays in the history.">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-no-loading>End</button></form>{% endif %}</td></tr>{% endfor %}
+      </tbody></table></div>
+      {% else %}<div class="card-body">{% include "components/empty_state.html" with icon="people" title="No members assigned" %}</div>{% endif %}</div>
+    {% if past_assignments %}<div class="card mb-4"><div class="card-header">Training history</div><div class="table-responsive"><table class="table mb-0"><tbody>
+      {% for a in past_assignments %}<tr><td><a href="{{ a.member.get_absolute_url }}">{{ a.member.full_name }}</a></td><td class="text-muted">{{ a.start_date|date:"M j, Y" }} – {{ a.end_date|date:"M j, Y" }}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+    {% if certificates is not None %}<div class="card mb-4"><div class="card-header d-flex justify-content-between">Certificates <a href="{% url 'trainers:certificate_add' t.pk %}" class="small fw-normal">+ Upload</a></div>
+      {% if certificates %}<ul class="list-group list-group-flush">{% for c in certificates %}<li class="list-group-item d-flex justify-content-between align-items-center">
+        <div><strong>{{ c.title }}</strong> <span class="text-muted">{{ c.issuer }}</span>{% if c.expires_on %}<div class="small {% if c.is_expired %}text-danger{% else %}text-muted{% endif %}">{% if c.is_expired %}Expired{% else %}Valid until{% endif %} {{ c.expires_on|date:"M j, Y" }}</div>{% endif %}</div>
+        <div class="d-flex gap-2"><a class="btn btn-sm btn-outline-secondary" href="{% url 'trainers:certificate_download' c.pk %}"><i class="bi bi-download"></i></a>
+          <form method="post" action="{% url 'trainers:certificate_delete' c.pk %}" data-no-loading data-confirm="Delete this certificate file?">{% csrf_token %}<button class="btn btn-sm btn-outline-danger" data-no-loading><i class="bi bi-trash"></i></button></form></div></li>{% endfor %}</ul>
+      {% else %}<div class="card-body text-muted small">No certificates uploaded.</div>{% endif %}</div>{% endif %}
+    {% if compensation is not None %}<div class="card"><div class="card-header d-flex justify-content-between">Salary &amp; commission <a href="{% url 'trainers:compensation_add' t.pk %}" class="small fw-normal">+ Record</a></div>
+      {% if compensation %}<div class="table-responsive"><table class="table mb-0"><thead><tr><th>Type</th><th>Period</th><th class="text-end">Amount</th><th>By</th></tr></thead><tbody>
+        {% for c in compensation %}<tr><td>{{ c.get_kind_display }}</td><td>{{ c.period_start|date:"M j" }} – {{ c.period_end|date:"M j, Y" }}</td><td class="text-end">{{ c.amount|lkr }}</td><td class="text-muted">{{ c.recorded_by.display_name|default:"—" }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="card-body text-muted small">No records yet. Only users with compensation access can see this section.</div>{% endif %}</div>{% endif %}
+  </div>
+</div>
+{% endwith %}
+{% endblock %}

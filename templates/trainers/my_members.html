@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load gym %}
+{% block title %}My members{% endblock %}
+{% block content %}
+<div class="page-header"><h1>My members</h1></div>
+<div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+  <thead><tr><th>Member</th><th>Membership</th><th class="text-end">Training</th></tr></thead><tbody>
+  {% for m in object_list %}<tr>
+    <td><a href="{{ m.get_absolute_url }}" class="fw-semibold">{{ m.full_name }}</a><div><small class="text-muted">{{ m.member_id }}</small></div></td>
+    <td>{% include "components/status_badge.html" with key=m.membership_status label=m.membership_status|member_status %}</td>
+    <td class="text-end text-nowrap">
+      {% if request.user|can:"workouts.view" %}<a href="{% url 'workouts:plan_list' %}?q={{ m.member_id }}" class="btn btn-sm btn-outline-secondary">Workouts</a>{% endif %}
+      {% if request.user|can:"progress.view" %}<a href="{% url 'progress:member' m.pk %}" class="btn btn-sm btn-outline-secondary">Progress</a>{% endif %}
+      {% if request.user|can:"appointments.manage" %}<a href="{% url 'appointments:book' %}?member={{ m.member_id }}" class="btn btn-sm btn-primary">Book</a>{% endif %}</td></tr>
+  {% empty %}<tr><td colspan="3">{% include "components/empty_state.html" with icon="people" title="No members assigned to you yet" %}</td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% include "components/pagination.html" %}
+{% endblock %}
